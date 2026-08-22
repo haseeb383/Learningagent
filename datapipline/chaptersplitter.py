@@ -1,102 +1,77 @@
-import os
-from marker.converters.pdf import PdfConverter
-from marker.models import create_model_dict
-from marker.output import text_from_rendered
-from pathlib import Path
 import logging
+import time
+from pathlib import Path
+
+from docling_core.types.doc import ImageRefMode, PictureItem, TableItem
 from docling.datamodel.base_models import InputFormat
-from docling.datamodel.pipeline_options import PdfPipelineOptions, ImageRefMode
+from docling.datamodel.pipeline_options import PdfPipelineOptions
 from docling.document_converter import DocumentConverter, PdfFormatOption
 
-# os.environ["TORCH_DEVICE"] = "cuda"
-# os.environ["IN_MEMORY_MAX_PAGES"] = "2"
-# os.environ["VRAM_PER_TASK"] = "2.0"
-# os.environ["OCR_ENGINE"] = "ocrmypdf"
-os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "true"
+logging.basicConfig(level=logging.INFO)
+_log = logging.getLogger(__name__)
 
 input_pdf = "test_text_book.pdf"
 
-def convertpdf2markdown(input_pdf):
-  model_dict = create_model_dict()
-  converter =  PdfConverter(artifact_dict=model_dict)
-
-  rendered_doc = converter(input_pdf)
-  full_text, _, _ = text_from_rendered(rendered_doc)
-  output_md = "test_output.md"
-  with open(output_md, "w", encoding="utf-8") as f:
-      f.write(full_text)
-
 def main(input_pdf_path: str):
-    # Establish workspace directories
     output_dir = Path("output_dataset")
     images_dir = output_dir / "extracted_images"
+    output_dir.mkdir(parents=True, exist_ok=True)
     images_dir.mkdir(parents=True, exist_ok=True)
-    
+
     input_path = Path(input_pdf_path)
-    print(f"Initializing processing pipeline for: {input_path.name}")
+    _log.info(f"Processing: {input_path.name}")
 
-    # 2. Configure Extraction Pipeline Options Safely
+    # Pipeline options - based on official export_figures example
     pipeline_options = PdfPipelineOptions()
+    pipeline_options.images_scale = 2.0  # higher resolution for equations/diagrams
+    pipeline_options.generate_page_images = True
+    pipeline_options.generate_picture_images = True
+    pipeline_options.generate_table_images = True
     
-    # Drops the image resolution slightly to protect from Out-of-Memory (OOM) crashes
-    pipeline_options.images_scale = 1.0  
-    
-    # Keep embedded image extraction enabled for structural layouts
-    pipeline_options.generate_page_images = False  
-    pipeline_options.generate_picture_images = True  
-    
-    # Directs OCR to read small bounding boxes/equations (Crucial for textbooks)
-    pipeline_options.ocr_options.bitmap_area_threshold = 0.0  
-    pipeline_options.ocr_options.force_full_page_ocr = True   
+    # OCR - use current API (force_full_page_ocr is on OcrAutoOptions)
+    pipeline_options.ocr_options.force_full_page_ocr = True
+    # pipeline_options.ocr_options.lang = ["en"]  # optional: specify language
 
-    # Bind options to the PDF Converter format
     converter = DocumentConverter(
         format_options={
             InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
         }
     )
 
-    # 3. Parse Document
-    print("Parsing document layout tree (this may take a few minutes for large textbooks)...")
-    conversion_result = converter.convert(input_path)
-    docling_doc = conversion_result.document
+    _log.info("Parsing document...")
+    start_time = time.time()
+    conv_res = converter.convert(input_path)
+    _log.info(f"Parsed in {time.time() - start_time:.2f}s")
 
-    # 4. Export Markdown using native Image resolution references
-    print("Exporting document structure and saving local image assets...")
+    doc = conv_res.document
+    doc_filename = input_path.stem
 
-    def custom_image_provider(element, doc):
-        """
-        Executes inside Docling's markdown rendering hook.
-        Safely isolates the visual element, assigns a unique name, and writes it to disk.
-        """
-        # Safely extract unique token path string from schema definition
-        clean_id = element.self_ref.replace("#/", "").replace("/", "_")
-        image_filename = f"graph_{clean_id}.png"
-        image_save_path = images_dir / image_filename
-        
-        # Save image if visual data exists
-        if hasattr(element, "image") and element.image:
-            element.image.pil_image.save(image_save_path)
-            
-        # Return the clean relative text snippet that goes inside the generated Markdown markdown file
-        return f"extracted_images/{image_filename}"
+    # 1. Save page images (optional, but useful)
+    for page_no, page in doc.pages.items():
+        page_image_path = images_dir / f"{doc_filename}-page-{page_no}.png"
+        page.image.pil_image.save(page_image_path, format="PNG")
 
-    # Render Document with Image References
-    markdown_content = docling_doc.export_to_markdown(
-        image_placeholder="<!-- image -->",
-        image_resolution_provider=custom_image_provider
-    )
+    # 2. Save figure/table images
+    table_counter = 0
+    picture_counter = 0
+    for element, _level in doc.iterate_items():
+        if isinstance(element, TableItem):
+            table_counter += 1
+            img_path = images_dir / f"{doc_filename}-table-{table_counter}.png"
+            element.get_image(doc).save(img_path, "PNG")
+        elif isinstance(element, PictureItem):
+            picture_counter += 1
+            img_path = images_dir / f"{doc_filename}-picture-{picture_counter}.png"
+            element.get_image(doc).save(img_path, "PNG")
 
-    # 5. Save final Markdown file out to workspace root
-    output_md_path = output_dir / f"{input_path.stem}_structured.md"
-    with open(output_md_path, "w", encoding="utf-8") as f:
-        f.write(markdown_content)
+    _log.info(f"Saved {table_counter} tables, {picture_counter} pictures")
 
-    print("\n" + "="*40)
-    print("SUCCESS: Pipeline executed completely!")
-    print(f"Structured Text written to: {output_md_path}")
-    print(f"Total extracted figures saved to: {images_dir}/")
-    print("="*40)
+    # 3. Save markdown with REFERENCED images (links to extracted_images/)
+    md_path = output_dir / f"{doc_filename}_structured.md"
+    doc.save_as_markdown(md_path, image_mode=ImageRefMode.REFERENCED)
+
+    _log.info(f"Done. Markdown: {md_path}")
+    _log.info(f"Images in: {images_dir}")
 
 if __name__ == "__main__":
-   main(input_pdf)
+    main(input_pdf)
