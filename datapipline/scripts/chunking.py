@@ -5,7 +5,7 @@ from langchain_core.documents import Document
 test_file = "test_text_book.pdf"
 
 def chunk_chapter(chapter_num: int, chapter_text: str, source_file:str) -> list[Document]:
-  chapter_title = title = chapter_text.splitlines()[0]
+  chapter_title = chapter_text.splitlines()[0]
 
   splitter = MarkdownHeaderTextSplitter(
     headers_to_split_on=[

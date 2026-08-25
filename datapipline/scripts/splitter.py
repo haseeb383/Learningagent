@@ -4,10 +4,7 @@ import re
 from langchain_text_splitters.markdown import MarkdownHeaderTextSplitter
 from langchain_core.documents import Document
 
-base_dir = "datapipline/markdown"
-test_file = "test_text_book.pdf"
-
-def split_by_chapters(file_name):
+def split_by_chapters(file_name, base_dir):
   file_name = Path(file_name).stem + ".md"
   content = Path(os.path.join(base_dir, file_name)).read_text(encoding="utf-8")
   pattern = re.compile(r'^## Chapter.*$', re.M)
