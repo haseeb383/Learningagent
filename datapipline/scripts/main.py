@@ -6,7 +6,6 @@ base_dir = "datapipline/markdown"
 test_file = "test_text_book.pdf"
 count_chapter = 1
 counter = 0
-
 def basic_data_pipline():
   for chapter_num, chapter_text in split_by_chapters(test_file, base_dir):
     chunks = chunk_chapter(chapter_num=chapter_num, chapter_text=chapter_text, source_file=test_file)
