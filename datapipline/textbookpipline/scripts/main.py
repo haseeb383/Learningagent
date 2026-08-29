@@ -1,6 +1,6 @@
-from chunking import chunk_chapter
-from splitter import split_by_chapters
-from embedding_store import embedding_model, store_chunks
+from datapipline.textbookpipline.scripts.chunking import chunk_chapter
+from datapipline.textbookpipline.scripts.splitter import split_by_chapters
+from datapipline.textbookpipline.scripts.embedding_store import embedding_model, store_chunks
 
 base_dir = "datapipline/markdown"
 test_file = "test_text_book.pdf"

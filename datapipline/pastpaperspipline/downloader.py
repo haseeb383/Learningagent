@@ -7,8 +7,6 @@ from pypdf import PdfReader, PdfWriter
 
 SUBJECT_YAML_PATH = "datapipline/pastpapers/subject.yaml"
 OUTPUT_DIR = "datapipline/pastpapers/downlaods"
-
-# Matches filenames like: 9709_m26_ms_22.pdf
 FILENAME_PATTERN = re.compile(
     r"(?P<subject_code>\d{4})_"
     r"(?P<session_code>[a-z])(?P<yy>\d{2})_"
@@ -18,15 +16,9 @@ FILENAME_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-
-# ---------- 1. Load subject config ----------
-
 def load_subject(subject: str) -> dict:
     with open(SUBJECT_YAML_PATH, "r") as file:
         return yaml.safe_load(file)[subject]
-
-
-# ---------- 2. Build the listing-page URL for one session ----------
 
 def build_session_url(subject_slug: str, subject_code: str, year: int, session_name: str) -> str:
     URL_TEMPLATE = (
@@ -40,15 +32,7 @@ def build_session_url(subject_slug: str, subject_code: str, year: int, session_n
         session_name=session_name,
     )
 
-
-# ---------- 3. Extract all links from the listing page ----------
-
 def extracter(context, target_url: str) -> list[str]:
-    """
-    Uses the shared browser context passed in from run_pipeline instead of
-    launching its own Playwright instance — nesting two sync_playwright()
-    calls is what caused the asyncio-loop error.
-    """
     links = []
     page = context.new_page()
     try:
@@ -64,15 +48,7 @@ def extracter(context, target_url: str) -> list[str]:
 
     return links
 
-
-# ---------- 4. Parse each link's filename into metadata ----------
-
 def parse_link(url: str) -> dict | None:
-    """
-    Pulls subject_code, session_code, yy, doc_type, paper, variant out of
-    the filename at the end of the download URL. Returns None if the URL
-    isn't a real paper download.
-    """
     match = FILENAME_PATTERN.search(url)
     if not match:
         return None
@@ -83,15 +59,7 @@ def parse_link(url: str) -> dict | None:
     data["url"] = url
     return data
 
-
-# ---------- 5. Group parsed links into qp/ms pairs by filename metadata ----------
-
 def pair_qp_ms(links: list[str]) -> list[dict]:
-    """
-    Keys each parsed link by (subject_code, session_code, yy, paper, variant)
-    so a qp and its matching ms land in the same pair, regardless of the
-    order they appeared on the page.
-    """
     grouped: dict[tuple, dict] = {}
 
     for url in links:
@@ -117,9 +85,6 @@ def pair_qp_ms(links: list[str]) -> list[dict]:
 
     return pairs
 
-
-# ---------- 6. Download one file via Playwright ----------
-
 def download_with_playwright(context, url: str, filepath: str) -> bool:
     page = context.new_page()
     try:
@@ -127,8 +92,6 @@ def download_with_playwright(context, url: str, filepath: str) -> bool:
             try:
                 page.goto(url, timeout=30000)
             except Exception:
-                # navigating straight to a file download often throws
-                # net::ERR_ABORTED even though the download itself succeeds
                 pass
         download = download_info.value
         download.save_as(filepath)
@@ -138,9 +101,6 @@ def download_with_playwright(context, url: str, filepath: str) -> bool:
         return False
     finally:
         page.close()
-
-
-# ---------- 7. Embed metadata into the downloaded PDF ----------
 
 def add_metadata_to_pdf(filepath: str, metadata: dict) -> None:
     reader = PdfReader(filepath)
@@ -161,9 +121,6 @@ def add_metadata_to_pdf(filepath: str, metadata: dict) -> None:
         writer.write(f)
     os.replace(tmp_path, filepath)
 
-
-# ---------- 8. Download a session's paired files + tag metadata ----------
-
 def download_pairs(context, pairs: list[dict], output_dir: str) -> None:
     os.makedirs(output_dir, exist_ok=True)
 
@@ -182,9 +139,6 @@ def download_pairs(context, pairs: list[dict], output_dir: str) -> None:
 
             add_metadata_to_pdf(filepath, link)
             print(f"Downloaded + tagged: {filename}")
-
-
-# ---------- 9. Main loop: all sessions for a subject/year ----------
 
 def run_pipeline(subject: str, year: int) -> None:
     subject_data = load_subject(subject)
