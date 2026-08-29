@@ -2,7 +2,6 @@ from ddgs import DDGS
 from playwright.sync_api import sync_playwright
 from langchain_core.tools import tool
 from playwright_stealth import Stealth
-from typing import List, Dict
 
 @tool
 def searcher(query: str, max_results: int = 10):
