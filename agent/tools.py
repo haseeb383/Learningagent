@@ -17,7 +17,7 @@ def searcher(query: str, max_results: int = 10):
             })
     return results
 
-@tool
+# @tool
 def extracter(target_url: str):
     """Extract full content from URLs. Returns markdown per URL."""
     extracted_data = {
@@ -51,3 +51,5 @@ def extracter(target_url: str):
             browser.close()
 
     return extracted_data
+
+print(extracter("https://pastpapers.papacambridge.com/papers/caie/as-and-a-level-mathematics-9709-2025-oct-nov")['links'])
