@@ -5,8 +5,8 @@ from playwright.sync_api import sync_playwright
 from playwright_stealth import Stealth
 from pypdf import PdfReader, PdfWriter
 
-SUBJECT_YAML_PATH = "datapipline/pastpapers/subject.yaml"
-OUTPUT_DIR = "datapipline/pastpapers/downlaods"
+SUBJECT_YAML_PATH = "datapipline/pastpaperspipline/subject.yaml"
+OUTPUT_DIR = "datapipline/pastpaperspipline/downlaods"
 FILENAME_PATTERN = re.compile(
     r"(?P<subject_code>\d{4})_"
     r"(?P<session_code>[a-z])(?P<yy>\d{2})_"
@@ -160,7 +160,7 @@ def run_pipeline(subject: str, year: int) -> None:
             raw_links = extracter(context, url)
             pairs = pair_qp_ms(raw_links)
 
-            session_dir = os.path.join(OUTPUT_DIR, subject, str(year), session_code)
+            session_dir = os.path.join(OUTPUT_DIR)
             download_pairs(context, pairs, session_dir)
 
         browser.close()
