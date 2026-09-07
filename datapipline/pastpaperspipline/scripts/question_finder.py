@@ -2,7 +2,7 @@ import re
 import fitz
 
 QUESTION_NUMBER_X0 = 49.6
-X0_TOLERANCE = 2.0
+X0_TOLERANCE = 10
 NUMBER_PATTERN = re.compile(r"^(\d{1,2})\b")
 
 
