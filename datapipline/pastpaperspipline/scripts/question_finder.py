@@ -119,3 +119,7 @@ def run_pipeline(
     )
 
   return final
+
+questions = run_pipeline(pdf_path="datapipline/pastpaperspipline/downlaods/9709_m26_qp_62.pdf")
+lines = extract_lines(pdf_path="datapipline/pastpaperspipline/downlaods/9709_m26_qp_52.pdf")
+print(lines)
