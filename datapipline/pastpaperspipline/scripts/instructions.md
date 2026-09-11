@@ -64,12 +64,23 @@ You receive a list of pages, each with lines containing:
 
 #### 1. Question Start
 - Number at `x ≈ 49.6` (e.g., "1", "2", "3"...)
-- `start_y` = y of this number
-- Stem text follows at `x ≈ 72.3`
+- `question_start_y` = y of this number
+- Stem text follows at `x ≈ 72.3` (this is PART OF THE QUESTION)
 
-#### 2. Part Start
+#### 2. Part Start — CRITICAL: STEM INCLUSION RULE
 - Pattern: `(a)`, `(b)`, `(c)`, `(i)`, `(ii)`, `(a)(i)` at `x ≈ 72.3` or `95.0`
-- `start_y` = y of this part label
+- **FIRST PART of a question**: `start_y` = `question_start_y` (includes stem)
+- **Subsequent parts**: `start_y` = y of the part label
+- **Reason**: The stem (text between question number and first part) contains essential context (definitions, data, diagrams) that belongs to the first part's crop.
+
+#### 2a. How to Implement
+```
+When you find a question number at x≈49.6:
+  1. Record question_start_y = that line's y0
+  2. Scan forward for the FIRST part label (a)/(b)/(c)...
+  3. For that FIRST part: start_y = question_start_y
+  4. For each subsequent part: start_y = part label's y0
+```
 
 #### 3. Part End (Critical)
 - **Primary signal**: Mark box `[n]` at `x ≈ 532.3` on same line as part label or last line of question text
@@ -77,12 +88,28 @@ You receive a list of pages, each with lines containing:
 - **Immediately after mark**: dotted lines begin → answer space → **STOP**
 - **Do NOT include dotted lines** in the crop
 
-#### 4. Diagrams / Graphs / Large Gaps
-When a part mentions a diagram/graph (e.g., "Draw a cumulative frequency graph", "Complete the tree diagram"):
-- The mark `[n]` appears **before** the diagram space
-- After the mark, there is a **large y-gap** with no text, no dotted lines
-- **End of that part** = y of the mark `[n]` line (same as normal)
-- **Do NOT extend to page footer** — the diagram is drawn by the student
+#### 4. Diagrams / Graphs / Large Gaps — CRITICAL: INCLUDE GRAPH SPACE
+When a part mentions a diagram/graph (e.g., "Draw a cumulative frequency graph", "Complete the tree diagram", "Draw the graph of..."):
+- The mark `[n]` appears **before** the diagram/graph space
+- **Two cases — handle differently:**
+
+**Case A: Explicit diagram in question paper (tree diagram, circuit, geometry figure)**
+- Diagram elements have coordinates (labels, lines, axes at specific x/y)
+- **End y = bottom of diagram elements** (max y of diagram-related lines)
+- Example: Tree diagram at y=222–508 → end_y = 508
+
+**Case B: "Draw a graph" — blank graph paper/axes provided for student**
+- After mark `[n]`, large blank space to page footer (no text, no dotted lines, no diagram elements)
+- **End y = page footer y (or next question start on same page)**
+- **INCLUDE the blank graph space** — it's part of the question paper
+- Example: Mark at y=189.6, footer at y=784.5 → end_y = 784.5
+
+**How to distinguish:**
+- Scan lines after mark `[n]` up to page end/next question
+- If lines contain diagram keywords ("diagram", "graph", "axes", "grid", "curve") OR coordinate clusters at varied x → Case A
+- If only footer/copyright lines → Case B (blank graph space)
+
+**Rule: When in doubt for "Draw..." questions, extend to page footer.**
 
 #### 5. Multi-Page Questions
 - A question/part can span pages
@@ -99,23 +126,36 @@ When a part mentions a diagram/graph (e.g., "Draw a cumulative frequency graph",
 - **NO** → Continuation of previous question. Keep looking for its parts.
 - **Example**: Page 7 has parts (c)(d) at x≈72.3 but NO number at x≈49.6. Previous page (6) ended with Q4 part (b). These are Q4(c)(d), not Q5.
 
+#### 6a. SEQUENTIAL ORDER ENFORCEMENT — MANDATORY
+- Questions MUST appear in numerical order: 1, 2, 3, 4...
+- **If you reach a question number N but have not output question N-1 → ERROR**
+- **Do NOT skip questions.** If Q1 is missing from the data, stop and report:
+  ```
+  ERROR: Missing question 1. Found question 2 at page 3, y=63.4 but no question 1 detected.
+  Possible causes: Page 2 is data/formulae (skip), or question 1 starts on page 1 (cover page).
+  ```
+- **Verification**: After parsing, check `questions = sorted(set(q["question"] for q in results))`. Must be `[1, 2, 3, ...]` with no gaps.
+
 #### 7. Process Order: Question by Question
 ```
 For each question in sequence:
   1. Find question number at x≈49.6 → record question_start_y
-  2. Find ALL parts for THIS question (loop):
-     - Find next part label (a)/(b)/(c)...
-     - Find its mark [n] at x≈532.3
-     - Record part: {question, part, start_page, start_y, end_page, end_y}
-     - If next part label found before new question number → continue
-     - If new question number at x≈49.6 found → STOP, go to step 1 for next question
-     - If page ends without new question number → check next page for continuation
-  3. When new question number found → repeat from step 1
+  2. Scan forward to find FIRST part label (a)/(b)/(c)...
+  3. For FIRST part: start_y = question_start_y (INCLUDES STEM)
+  4. For each subsequent part: start_y = part label's y0
+  5. Find mark [n] at x≈532.3 for each part → end_y
+  6. Record part: {question, part, start_page, start_y, end_page, end_y}
+  7. If next part label found before new question number → continue
+  8. If new question number at x≈49.6 found → STOP, go to step 1 for next question
+  9. If page ends without new question number → check next page for continuation
 ```
 **Do not jump ahead.** Finish extracting all parts of Q1 before looking for Q2.
 
+**VERIFICATION**: Before outputting, check that every question's first part has start_y = question number's y0. If not, fix it.
+
 #### 8. Single-Part Questions
 - No `(a)` label — the question number line IS the start
+- `start_y` = question number's y0 (includes stem)
 - Stem text at x≈72.3
 - Mark `[n]` at x≈532.3 ends the question
 - Output `part: ""`
@@ -192,9 +232,9 @@ For each question in sequence:
 
 ### Structured: Q1 (9709/62, Page 2)
 ```
-y=63.4 x=49.6: 1                                    ← Question start
-y=63.4 x=72.3: The heights, H centimetres...        ← Stem
-y=128.4 x=72.3: (a) Calculate unbiased estimates...  ← Part (a) start
+y=63.4 x=49.6: 1                                    ← Question start (question_start_y = 63.4)
+y=63.4 x=72.3: The heights, H centimetres...        ← Stem (ESSENTIAL — included in part a)
+y=128.4 x=72.3: (a) Calculate unbiased estimates...  ← Part (a) label
 y=128.4 x=532.3: [3]                                 ← Part (a) END
 y=154.4 x=95.0: ....................................  ← Answer space → STOP
 y=427.4 x=72.3: It is now given that...              ← Part (b) start
@@ -202,21 +242,22 @@ y=453.4 x=72.3: (b) Stating a necessary assumption...
 y=466.4 x=532.3: [4]                                 ← Part (b) END
 y=492.4 x=95.0: ....................................  ← STOP
 ```
-**Output:**
+**Output — NOTE: part (a) starts at 63.4 (question number), NOT 128.4:**
 ```json
 [
-  {"question": "1", "part": "a", "start_page": 2, "start_y": 128.4, "end_page": 2, "end_y": 128.4},
+  {"question": "1", "part": "a", "start_page": 2, "start_y": 63.4, "end_page": 2, "end_y": 128.4},
   {"question": "1", "part": "b", "start_page": 2, "start_y": 453.4, "end_page": 2, "end_y": 466.4}
 ]
 ```
 
-### Structured: Q3 with Diagram (9709/52, Pages 4–5)
+### Structured: Q3 with Diagram (9709/52, Pages 4–5) — Case B: "Draw a graph"
 ```
 Page 4:
-y=63.4 x=49.6: 3                                    ← Q3 start
+y=63.4 x=49.6: 3                                    ← Q3 start (question_start_y = 63.4)
+y=63.4 x=72.3: On a particular day...               ← Stem + table (ESSENTIAL)
 y=189.6 x=72.3: (a) Draw a cumulative frequency graph...
-y=189.6 x=532.3: [4]                                 ← Part (a) END
-y=784.5: footer                                      ← Page ends, NO dotted lines
+y=189.6 x=532.3: [4]                                 ← Part (a) mark
+y=784.5: footer                                      ← Page ends, NO dotted lines, NO diagram elements
 
 Page 5:
 y=63.4 x=72.3: (b) Use your graph to estimate...    ← Part (b) start (NO Q number!)
@@ -224,33 +265,65 @@ y=76.4 x=532.3: [2]                                 ← Part (b) END
 y=323.4 x=72.3: (c) Calculate an estimate...
 y=349.4 x=532.3: [2]                                 ← Part (c) END
 ```
+**Analysis**: Part (a) says "Draw a cumulative frequency graph". After mark [4], only footer lines exist → **Case B (blank graph space)**. Extend to page footer.
+**Output — part (a) ends at footer (784.5), includes blank graph space:**
+```json
+[
+  {"question": "3", "part": "a", "start_page": 4, "start_y": 63.4, "end_page": 4, "end_y": 784.5, "note": "Includes stem + table; 'Draw graph' → blank graph space to footer"},
+  {"question": "3", "part": "b", "start_page": 5, "start_y": 63.4, "end_page": 5, "end_y": 76.4},
+  {"question": "3", "part": "c", "start_page": 5, "start_y": 323.4, "end_page": 5, "end_y": 349.4}
+]
+```
+
+### Structured: Q6 with Tree Diagram (9709/52, Pages 8–9) — Case A: Explicit diagram
+```
+Page 8:
+y=63.4 x=49.6: 6                                    ← Q6 start (question_start_y = 63.4)
+y=63.4 x=72.3: Drivers who wish to obtain...        ← Stem
+y=193.4 x=72.3: (a) Complete the tree diagram...
+y=193.4 x=532.3: [2]                                 ← Part (a) mark
+y=222.5–508: diagram elements (labels "Skills", "Theory", "Pass", "Fail", probabilities at various x/y)
+y=662.8 x=72.3: (b) Show that the probability...
+y=675.8 x=532.3: [1]                                 ← Part (b) END
+
+Page 9:
+y=63.4 x=72.3: (c) Find the probability...          ← Part (c) start (NO Q number!)
+y=89.4 x=532.3: [2]                                 ← Part (c) END
+y=414.4 x=72.3: (d) Find the probability...
+y=453.4 x=532.3: [3]                                 ← Part (d) END
+```
+**Analysis**: Part (a) says "Complete the tree diagram". After mark [2], diagram elements exist at y=222–508 → **Case A (explicit diagram)**. End at diagram bottom (508).
 **Output:**
 ```json
 [
-  {"question": "3", "part": "a", "start_page": 4, "start_y": 189.6, "end_page": 4, "end_y": 189.6, "note": "Diagram space after mark; page ends at footer"},
-  {"question": "3", "part": "b", "start_page": 5, "start_y": 63.4, "end_page": 5, "end_y": 76.4},
-  {"question": "3", "part": "c", "start_page": 5, "start_y": 323.4, "end_page": 5, "end_y": 349.4}
+  {"question": "6", "part": "a", "start_page": 8, "start_y": 63.4, "end_page": 8, "end_y": 508.0, "note": "Includes stem + explicit tree diagram (y=222-508)"},
+  {"question": "6", "part": "b", "start_page": 8, "start_y": 662.8, "end_page": 8, "end_y": 675.8},
+  {"question": "6", "part": "c", "start_page": 9, "start_y": 63.4, "end_page": 9, "end_y": 89.4},
+  {"question": "6", "part": "d", "start_page": 9, "start_y": 414.4, "end_page": 9, "end_y": 453.4}
 ]
 ```
 
 ### Structured: Continuation Detection (9709/52, Pages 6–7)
 ```
 Page 6:
-y=63.4 x=49.6: 4                                    ← Q4 start
+y=63.4 x=49.6: 4                                    ← Q4 start (question_start_y = 63.4)
+y=63.4 x=72.3: Suri has a bag...                    ← Stem
+y=102.4 x=72.3: (a) Find the probability...
+y=102.4 x=532.3: [1]                                 ← Part (a) END
 y=349.4 x=72.3: (b) Find the probability...
 y=349.4 x=532.3: [2]                                 ← Part (b) END
 
 Page 7:
-y=63.4 x=72.3: Tan has a bag...                     ← NO number at x=49.6!
+y=63.4 x=72.3: Tan has a bag...                     ← NO number at x=49.6! → Continuation of Q4
 y=115.4 x=72.3: (c) Draw up the probability...
 y=115.4 x=532.3: [3]                                 ← Part (c) END
 y=414.4 x=72.3: (d) Find Var(X).
 y=414.4 x=532.3: [3]                                 ← Part (d) END
 ```
-**Output (CORRECT — continuation of Q4):**
+**Output (CORRECT — part (a) starts at question_start_y=63.4, includes stem):**
 ```json
 [
-  {"question": "4", "part": "a", "start_page": 6, "start_y": 102.4, "end_page": 6, "end_y": 102.4},
+  {"question": "4", "part": "a", "start_page": 6, "start_y": 63.4, "end_page": 6, "end_y": 102.4},
   {"question": "4", "part": "b", "start_page": 6, "start_y": 349.4, "end_page": 6, "end_y": 349.4},
   {"question": "4", "part": "c", "start_page": 7, "start_y": 115.4, "end_page": 7, "end_y": 115.4},
   {"question": "4", "part": "d", "start_page": 7, "start_y": 414.4, "end_page": 7, "end_y": 414.4}
@@ -325,16 +398,21 @@ y=226.0 x=70.9: D                                   ← D label (END of Q2)
 ### Structured (9709/52)
 ```json
 [
-  {"question": "1", "part": "", "start_page": 2, "start_y": 63.4, "end_page": 2, "end_y": 102.4},
+  {"question": "1", "part": "a", "start_page": 2, "start_y": 63.4, "end_page": 2, "end_y": 102.4},
+  {"question": "1", "part": "b", "start_page": 2, "start_y": 453.4, "end_page": 2, "end_y": 466.4},
   {"question": "2", "part": "a", "start_page": 3, "start_y": 63.4, "end_page": 3, "end_y": 76.4},
   {"question": "2", "part": "b", "start_page": 3, "start_y": 427.4, "end_page": 3, "end_y": 440.4},
-  {"question": "3", "part": "a", "start_page": 4, "start_y": 189.6, "end_page": 4, "end_y": 189.6, "note": "Diagram space after mark; page ends at footer"},
+  {"question": "3", "part": "a", "start_page": 4, "start_y": 63.4, "end_page": 4, "end_y": 784.5, "note": "Includes stem + table; 'Draw graph' → blank graph space to footer"},
   {"question": "3", "part": "b", "start_page": 5, "start_y": 63.4, "end_page": 5, "end_y": 76.4},
   {"question": "3", "part": "c", "start_page": 5, "start_y": 323.4, "end_page": 5, "end_y": 349.4},
-  {"question": "4", "part": "a", "start_page": 6, "start_y": 102.4, "end_page": 6, "end_y": 102.4},
+  {"question": "4", "part": "a", "start_page": 6, "start_y": 63.4, "end_page": 6, "end_y": 102.4},
   {"question": "4", "part": "b", "start_page": 6, "start_y": 349.4, "end_page": 6, "end_y": 349.4},
   {"question": "4", "part": "c", "start_page": 7, "start_y": 115.4, "end_page": 7, "end_y": 115.4},
-  {"question": "4", "part": "d", "start_page": 7, "start_y": 414.4, "end_page": 7, "end_y": 414.4}
+  {"question": "4", "part": "d", "start_page": 7, "start_y": 414.4, "end_page": 7, "end_y": 414.4},
+  {"question": "5", "part": "a", "start_page": 8, "start_y": 63.4, "end_page": 8, "end_y": 508.0, "note": "Includes stem + explicit tree diagram (y=222-508)"},
+  {"question": "5", "part": "b", "start_page": 8, "start_y": 662.8, "end_page": 8, "end_y": 675.8},
+  {"question": "5", "part": "c", "start_page": 9, "start_y": 63.4, "end_page": 9, "end_y": 89.4},
+  {"question": "5", "part": "d", "start_page": 9, "start_y": 414.4, "end_page": 9, "end_y": 453.4}
 ]
 ```
 
@@ -391,9 +469,17 @@ y=226.0 x=70.9: D                                   ← D label (END of Q2)
 - [ ] Detect paper type: mark boxes at x≈532.3 → Structured; choices A-D at x≈70.9 → MCQ
 - [ ] Skip page 2 for MCQ (Data/Formulae)
 - [ ] Skip footer/copyright/blank pages
-- [ ] **Structured**: Find question numbers at x≈49.6, then ALL parts via marks at x≈532.3
+- [ ] **Structured**: Find question numbers at x≈49.6, record question_start_y
+- [ ] **Structured**: FIRST part start_y = question_start_y (INCLUDES STEM) — CRITICAL
+- [ ] **Structured**: Subsequent parts start_y = part label y0
+- [ ] **Structured**: Graph/Diagram handling:
+  - "Draw graph" + blank space after mark → Case B: end_y = page footer
+  - Explicit diagram elements after mark → Case A: end_y = diagram bottom
+- [ ] **Structured**: All parts end at mark [n] at x≈532.3 (before dotted lines)
 - [ ] **Structured**: No question number at x≈49.6 on new page → continuation of previous question
-- [ ] **Structured**: Diagram mentioned + mark present → end at mark, ignore diagram gap
+- [ ] **SEQUENTIAL ORDER**: Questions must be 1,2,3... with NO gaps. If Q1 missing → ERROR with reason
 - [ ] **MCQ**: Find question numbers at x≈49.6, end at D choice (x≈70.9 label, x≈389.8 text)
 - [ ] **MCQ**: Multiple questions per page — process sequentially
+- [ ] **VERIFY**: Every question's first part starts at the question number's y-coordinate
+- [ ] **VERIFY**: Question numbers are sequential with no gaps
 - [ ] Output JSON array only, no extra text

@@ -3,7 +3,7 @@ from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 from extract_lines import extract_lines
 
-pdf_path = "datapipline/pastpaperspipline/downlaods/9709_m26_qp_62.pdf"
+pdf_path = "datapipline/pastpaperspipline/downlaods/9709_m26_qp_52.pdf"
 
 lines = extract_lines(pdf_path=pdf_path)
 
@@ -21,4 +21,5 @@ model = ChatOpenRouter(
 #   api_key="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"
 # )
 
-print(model.invoke(instructions + "here is the input" + lines))
+ans = model.invoke(instructions + "here is the input" + lines)
+print(ans.content)

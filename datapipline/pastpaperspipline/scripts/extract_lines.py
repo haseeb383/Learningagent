@@ -1,8 +1,6 @@
 import ast
 import fitz
 
-pdf_path = "datapipline/pastpaperspipline/downlaods/9702_m26_qp_12.pdf"
-
 def extract_lines(pdf_path: str) -> list[dict]:
   doc = fitz.open(pdf_path)
   pages_out = []
@@ -36,12 +34,10 @@ def extract_lines(pdf_path: str) -> list[dict]:
   lines = ""
   for p in data:
       if p["page_number"] >= 2:
-          lines = lines + f'\n=== Page {p["page_number"]} === \n'
+          lines = lines + f'=== Page {p["page_number"]} === \n'
           # print(f'\n=== Page {p["page_number"]} === \n')
           for line in p["lines"]:
               text = line["text"][:100].encode('ascii', 'replace').decode('ascii')
-              lines = lines + f'  y={line["y0"]:.1f} x={line["x0"]:.1f}: {text}'
+              lines = lines + f'  y={line["y0"]:.1f} x={line["x0"]:.1f}: {text} \n'
               # print(f'  y={line["y0"]:.1f} x={line["x0"]:.1f}: {text}')
   return lines
-
-extract_lines(pdf_path=pdf_path)
