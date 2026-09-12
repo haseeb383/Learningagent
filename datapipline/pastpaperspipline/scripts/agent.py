@@ -1,15 +1,14 @@
-from langchain_openrouter import ChatOpenRouter
 import os
-from langchain_groq import ChatGroq
-from dotenv import load_dotenv
+import numpy as np
+from dotenv import dotenv_values
 from extract_lines import extract_lines
+from langchain_openrouter import ChatOpenRouter
 
-load_dotenv()
+config = dotenv_values(".env")
 
-OPENROUTER = os.getenv("OPENROUTER_API_KEY")
-GROQ = os.getenv("GROQ_API_KEY")
+OPENROUTER_API_KEY = config.get("OPENROUTER_API_KEY")
 
-pdf_path = "datapipline/pastpaperspipline/downlaods/9709_m26_qp_52.pdf"
+pdf_path = "datapipline/pastpaperspipline/scripts/9709_w25_qp_55.pdf"
 
 lines = extract_lines(pdf_path=pdf_path)
 
@@ -17,15 +16,11 @@ with open("datapipline/pastpaperspipline/scripts/instructions.md", "r", encoding
     instructions = f.read()
 
 model = ChatOpenRouter(
-  api_key=OPENROUTER,
+  api_key=OPENROUTER_API_KEY,
   model="nvidia/nemotron-3-ultra-550b-a55b:free"
 )
 
-
-# model = ChatGroq(
-#   model="openai/gpt-oss-20b",
-#   api_key=GROQ
-# )
-
 ans = model.invoke(instructions + "here is the input" + lines)
+np.savez('datapipline/pastpaperspipline/scripts/coordinates.npz', values=ans.content,)
 print(ans.content)
+print(f"coordinates are saved in coordinates.npz")
