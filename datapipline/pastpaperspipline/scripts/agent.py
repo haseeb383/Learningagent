@@ -1,4 +1,3 @@
-import os
 import numpy as np
 from dotenv import dotenv_values
 from extract_lines import extract_lines
