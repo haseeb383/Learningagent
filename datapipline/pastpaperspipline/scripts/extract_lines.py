@@ -39,5 +39,6 @@ def extract_lines(pdf_path: str) -> list[dict]:
           for line in p["lines"]:
               text = line["text"][:100].encode('ascii', 'replace').decode('ascii')
               lines = lines + f'  y={line["y0"]:.1f} x={line["x0"]:.1f}: {text} \n'
-              # print(f'  y={line["y0"]:.1f} x={line["x0"]:.1f}: {text}')
   return lines
+
+print(extract_lines("datapipline/pastpaperspipline/scripts/9709_w25_qp_55.pdf"))
