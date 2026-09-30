@@ -1,8 +1,8 @@
 import ast
-import fitz
+import pymupdf
 
 def extract_lines(pdf_path: str) -> list[dict]:
-  doc = fitz.open(pdf_path)
+  doc = pymupdf.open(pdf_path)
   pages_out = []
 
   for page_index in range(len(doc)):
@@ -40,5 +40,3 @@ def extract_lines(pdf_path: str) -> list[dict]:
               text = line["text"][:100].encode('ascii', 'replace').decode('ascii')
               lines = lines + f'  y={line["y0"]:.1f} x={line["x0"]:.1f}: {text} \n'
   return lines
-
-print(extract_lines("datapipline/pastpaperspipline/scripts/9709_w25_qp_55.pdf"))

@@ -1,4 +1,4 @@
-import numpy as np
+import json
 from dotenv import dotenv_values
 from extract_lines import extract_lines
 from langchain_openrouter import ChatOpenRouter
@@ -20,6 +20,14 @@ model = ChatOpenRouter(
 )
 
 ans = model.invoke(instructions + "here is the input" + lines)
-np.savez('datapipline/pastpaperspipline/scripts/coordinates.npz', values=ans.content,)
 print(ans.content)
-print(f"coordinates are saved in coordinates.npz")
+
+
+def find_qp_coordinates(pdf_path, model):
+  lines = extract_lines(pdf_path)
+  with open("datapipline/pastpaperspipline/scripts/instructions.md", "r", encoding="utf-8") as f:
+    instructions = f.read()
+    ans = model.invoke(instructions + "here is the input" + lines)
+    return(ans.content)
+
+    
