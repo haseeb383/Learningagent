@@ -4,7 +4,7 @@ from PIL import Image
 import os
 from collections import defaultdict
 
-PDF_PATH = "datapipline/pastpaperspipline/scripts/9709_w25_ms_55.pdf"
+PDF_PATH = "datapipline/pastpaperspipline/downlaods/9702_m26_ms_12.pdf"
 OUTPUT_DIR = "datapipline/pastpaperspipline/chunks"
 
 PADDING_TOP = 10
