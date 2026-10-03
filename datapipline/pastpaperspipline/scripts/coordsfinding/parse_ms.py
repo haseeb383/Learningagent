@@ -1,4 +1,3 @@
-from  extract_lines import extract_lines
 import re
 import json
 from dataclasses import dataclass
@@ -205,7 +204,8 @@ def parse_ms(content: str, question_type: QuestionType = "structured") -> List[P
         raise ValueError(f"Unknown question_type: {question_type}")
 
 # ─── CLI ───
-def main(ms_lines: str, question_type: QuestionType = "structured"):
+# find_ms_coords
+def find_ms_coords(ms_lines: str, question_type: QuestionType = "structured"):
     parts = parse_ms(ms_lines, question_type)
 
     out = [
@@ -220,12 +220,6 @@ def main(ms_lines: str, question_type: QuestionType = "structured"):
         for p in parts
     ]
 
-    with open('datapipline/pastpaperspipline/scripts/ms_coords.json', 'w') as f:
+    with open('datapipline/pastpaperspipline/coords/ms_coords.json', 'w') as f:
         json.dump(out, f, indent=2)
     print("\nSaved to ms_coords.json")
-
-
-if __name__ == '__main__':
-    pdf_path = "datapipline/pastpaperspipline/downlaods/9702_m26_ms_12.pdf"
-    lines = extract_lines(pdf_path)
-    main(lines, "mcq")

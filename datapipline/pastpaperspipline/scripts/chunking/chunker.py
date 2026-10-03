@@ -13,25 +13,7 @@ MIN_HEIGHT = 20
 ZOOM = 3.0
 GAP_BETWEEN_PARTS = 10
 
-example_DATA = [
-    {"question": "1", "part": "a", "start_page": 3, "start_y": 63.4, "end_page": 3, "end_y": 102.4},
-    {"question": "2", "part": "a", "start_page": 4, "start_y": 63.4, "end_page": 4, "end_y": 172.6},
-    {"question": "2", "part": "b", "start_page": 5, "start_y": 89.4, "end_page": 5, "end_y": 89.4},
-    {"question": "3", "part": "a", "start_page": 6, "start_y": 63.4, "end_page": 6, "end_y": 792.9},
-    {"question": "3", "part": "b", "start_page": 7, "start_y": 63.4, "end_page": 7, "end_y": 63.4},
-    {"question": "3", "part": "c", "start_page": 7, "start_y": 362.4, "end_page": 7, "end_y": 375.4},
-    {"question": "4", "part": "a", "start_page": 8, "start_y": 63.4, "end_page": 8, "end_y": 792.9},
-    {"question": "4", "part": "b", "start_page": 9, "start_y": 63.4, "end_page": 9, "end_y": 63.4},
-    {"question": "4", "part": "c", "start_page": 9, "start_y": 297.4, "end_page": 9, "end_y": 310.4},
-    {"question": "4", "part": "d", "start_page": 9, "start_y": 592.2, "end_page": 9, "end_y": 605.2},
-    {"question": "5", "part": "a", "start_page": 10, "start_y": 63.4, "end_page": 10, "end_y": 102.4},
-    {"question": "5", "part": "b", "start_page": 11, "start_y": 102.4, "end_page": 11, "end_y": 115.4},
-    {"question": "5", "part": "c", "start_page": 11, "start_y": 466.4, "end_page": 11, "end_y": 479.4},
-    {"question": "6", "part": "a", "start_page": 12, "start_y": 63.4, "end_page": 12, "end_y": 141.4},
-    {"question": "6", "part": "b", "start_page": 12, "start_y": 557.4, "end_page": 12, "end_y": 557.4},
-    {"question": "6", "part": "c", "start_page": 13, "start_y": 89.4, "end_page": 13, "end_y": 102.4},
-]
-with open('datapipline/pastpaperspipline/scripts/qp_structured_coords.json', 'r') as file:
+with open('datapipline/pastpaperspipline/coords/qp_structured_coords.json', 'r') as file:
     DATA = json.load(file)
 
 def crop_part(doc, part):
@@ -90,7 +72,7 @@ def crop_part(doc, part):
   return combined
 
 
-def main():
+def chunker(DATA):
   os.makedirs(OUTPUT_DIR, exist_ok=True)
   doc = pymupdf.open(PDF_PATH)
 
@@ -121,6 +103,5 @@ def main():
   doc.close()
   return saved_files
 
-
 if __name__ == "__main__":
-  main()
+  chunker(DATA=DATA)

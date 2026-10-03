@@ -216,5 +216,4 @@ def main(qp_lines: str, question_type: QuestionType = "mcq"):
 if __name__ == '__main__':
     pdf_path = "datapipline/pastpaperspipline/downlaods/9702_m26_qp_12.pdf"
     lines = extract_lines(pdf_path)
-  
     main(lines)
