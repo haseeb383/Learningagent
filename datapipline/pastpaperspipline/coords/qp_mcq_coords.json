@@ -1,0 +1,74 @@
+[
+  {
+    "question": "1",
+    "part": "",
+    "start_page": 3,
+    "start_y": 71.4,
+    "end_page": 3,
+    "end_y": 135.4
+  },
+  {
+    "question": "2",
+    "part": "",
+    "start_page": 3,
+    "start_y": 137.4,
+    "end_page": 3,
+    "end_y": 225.9
+  },
+  {
+    "question": "3",
+    "part": "",
+    "start_page": 3,
+    "start_y": 264.0,
+    "end_page": 3,
+    "end_y": 423.0
+  },
+  {
+    "question": "4",
+    "part": "",
+    "start_page": 3,
+    "start_y": 425.0,
+    "end_page": 3,
+    "end_y": 539.0
+  },
+  {
+    "question": "5",
+    "part": "",
+    "start_page": 3,
+    "start_y": 576.9,
+    "end_page": 4,
+    "end_y": 60.5
+  },
+  {
+    "question": "6",
+    "part": "",
+    "start_page": 4,
+    "start_y": 62.5,
+    "end_page": 4,
+    "end_y": 331.2
+  },
+  {
+    "question": "7",
+    "part": "",
+    "start_page": 4,
+    "start_y": 333.2,
+    "end_page": 5,
+    "end_y": 60.5
+  },
+  {
+    "question": "8",
+    "part": "",
+    "start_page": 5,
+    "start_y": 62.5,
+    "end_page": 5,
+    "end_y": 386.2
+  },
+  {
+    "question": "9",
+    "part": "",
+    "start_page": 5,
+    "start_y": 424.2,
+    "end_page": 5,
+    "end_y": 538.2
+  }
+]

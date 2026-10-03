@@ -4,7 +4,7 @@ from PIL import Image
 import os
 from collections import defaultdict
 
-PDF_PATH = "datapipline/pastpaperspipline/downlaods/9702_m26_ms_12.pdf"
+PDF_PATH = "datapipline/pastpaperspipline/downlaods/9709_w25_qp_55.pdf"
 OUTPUT_DIR = "datapipline/pastpaperspipline/chunks"
 
 PADDING_TOP = 10
@@ -31,7 +31,7 @@ example_DATA = [
     {"question": "6", "part": "b", "start_page": 12, "start_y": 557.4, "end_page": 12, "end_y": 557.4},
     {"question": "6", "part": "c", "start_page": 13, "start_y": 89.4, "end_page": 13, "end_y": 102.4},
 ]
-with open('datapipline/pastpaperspipline/scripts/ms_coords.json', 'r') as file:
+with open('datapipline/pastpaperspipline/scripts/qp_structured_coords.json', 'r') as file:
     DATA = json.load(file)
 
 def crop_part(doc, part):
