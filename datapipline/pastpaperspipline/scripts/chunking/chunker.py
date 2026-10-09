@@ -1,107 +1,285 @@
 import pymupdf  # PyMuPDF
-import json
 from PIL import Image
-import os
-from collections import defaultdict
+import json
+import io
+from pathlib import Path
+from typing import List, Dict, Literal, Optional
+from dataclasses import dataclass, asdict
 
-PDF_PATH = "datapipline/pastpaperspipline/downlaods/9709_w25_qp_55.pdf"
-OUTPUT_DIR = "datapipline/pastpaperspipline/chunks"
+# ─── Constants ───
+CHUNK_DIR = Path("datapipline/pastpaperspipline/chunks")
+COORDS_DIR = Path("datapipline/pastpaperspipline/coords")
+FOOTER_Y = 780.0
+PAGE_START_Y = 50.0
+END_Y_THRESHOLD_MIN = 50.0
+END_Y_THRESHOLD_MAX = 55.0
+DEFAULT_DPI = 200
+IMAGE_FORMAT = "PNG"
 
-PADDING_TOP = 10
-PADDING_BOTTOM = 10
-MIN_HEIGHT = 20
-ZOOM = 3.0
-GAP_BETWEEN_PARTS = 10
+CHUNK_DIR.mkdir(exist_ok=True)
+COORDS_DIR.mkdir(exist_ok=True)
 
-with open('datapipline/pastpaperspipline/coords/qp_structured_coords.json', 'r') as file:
-    DATA = json.load(file)
+@dataclass
+class Coord:
+    question: str
+    part: str
+    start_page: int
+    start_y: float
+    end_page: int
+    end_y: float
 
-def crop_part(doc, part):
-  """Render one part's region (possibly spanning pages) as a single PIL image,
-  stacking sub-page-crops vertically if start_page != end_page."""
-  start_page = part["start_page"] - 1  # convert to 0-indexed
-  end_page = part["end_page"] - 1
-  start_y = part["start_y"] - PADDING_TOP
-  end_y = part["end_y"] + PADDING_BOTTOM
+@dataclass
+class ChunkMetadata:
+    chunk_file: str
+    pdf_source: str
+    question: str
+    part: str
+    coordinates: Dict
+    page_range: List[int]
+    chunk_type: str
 
-  sub_images = []
+def normalize_coord(coord: Dict) -> Dict:
+    """
+    Adjust coordinates for edge cases.
+    Rule: end_y between 50-55 → previous page, y=780
+    """
+    coord = coord.copy()
+    if END_Y_THRESHOLD_MIN <= coord["end_y"] <= END_Y_THRESHOLD_MAX:
+        coord["end_page"] = coord["end_page"] - 1
+        coord["end_y"] = FOOTER_Y
+    return coord
 
-  if start_page == end_page:
-    page = doc[start_page]
-    rect = page.rect
-    y0 = max(0, start_y)
-    y1 = min(rect.height, end_y)
-    if y1 - y0 < MIN_HEIGHT:
-      # expand symmetrically to hit MIN_HEIGHT, clamped to page bounds
-      mid = (y0 + y1) / 2
-      y0 = max(0, mid - MIN_HEIGHT / 2)
-      y1 = min(rect.height, y0 + MIN_HEIGHT)
-      y0 = max(0, y1 - MIN_HEIGHT)
-    clip = pymupdf.Rect(0, y0, rect.width, y1)
-    pix = page.get_pixmap(matrix=pymupdf.Matrix(ZOOM, ZOOM), clip=clip)
-    img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-    sub_images.append(img)
-  else:
-    # spans multiple pages: first page from start_y to bottom,
-    # middle pages full width/height, last page from top to end_y
-    for pno in range(start_page, end_page + 1):
-      page = doc[pno]
-      rect = page.rect
-      if pno == start_page:
-        y0, y1 = max(0, start_y), rect.height
-      elif pno == end_page:
-        y0, y1 = 0, min(rect.height, end_y)
-      else:
-        y0, y1 = 0, rect.height
-      clip = pymupdf.Rect(0, y0, rect.width, y1)
-      pix = page.get_pixmap(matrix=pymupdf.Matrix(ZOOM, ZOOM), clip=clip)
-      img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-      sub_images.append(img)
+def segment_multipage(coord: Dict) -> List[Dict]:
+    """
+    Split multi-page coordinate into single-page segments.
+    Rules:
+    - First page: start_y → 780
+    - Middle pages: 50 → 780
+    - Last page: 50 → end_y (normalized)
+    """
+    if coord["start_page"] == coord["end_page"]:
+        return [coord]
+    
+    segments = []
+    
+    # First page
+    segments.append({
+        **coord,
+        "end_page": coord["start_page"],
+        "end_y": FOOTER_Y
+    })
+    
+    # Middle pages
+    for pg in range(coord["start_page"] + 1, coord["end_page"]):
+        segments.append({
+            **coord,
+            "start_page": pg,
+            "start_y": PAGE_START_Y,
+            "end_page": pg,
+            "end_y": FOOTER_Y
+        })
+    
+    # Last page
+    segments.append({
+        **coord,
+        "start_page": coord["end_page"],
+        "start_y": PAGE_START_Y
+    })
+    
+    return segments
 
-  if len(sub_images) == 1:
-    return sub_images[0]
+def crop_page(doc: pymupdf.Document, page_num: int, start_y: float, end_y: float, dpi: int = DEFAULT_DPI) -> Optional[Image]:
+    """Crop a single page segment and return as PIL Image. Returns None if page out of bounds."""
+    if page_num < 1 or page_num > len(doc):
+        return None
+    page = doc[page_num - 1]  # 0-indexed
+    rect = pymupdf.Rect(0, start_y, page.rect.width, end_y)
+    pix = page.get_pixmap(clip=rect, dpi=dpi)
+    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+    return img
 
-  # stitch sub-page images vertically
-  width = max(im.width for im in sub_images)
-  total_height = sum(im.height for im in sub_images)
-  combined = Image.new("RGB", (width, total_height), "white")
-  y_offset = 0
-  for im in sub_images:
-    combined.paste(im, (0, y_offset))
-    y_offset += im.height
-  return combined
-
-
-def chunker(DATA):
-  os.makedirs(OUTPUT_DIR, exist_ok=True)
-  doc = pymupdf.open(PDF_PATH)
-
-  by_question = defaultdict(list)
-  for part in DATA:
-    by_question[part["question"]].append(part)
-
-  saved_files = []
-  for q, parts in sorted(by_question.items(), key=lambda kv: int(kv[0])):
-    part_images = []
-    for part in parts:
-      img = crop_part(doc, part)
-      part_images.append(img)
-
-    width = max(im.width for im in part_images)
-    total_height = sum(im.height for im in part_images) + GAP_BETWEEN_PARTS * (len(part_images) - 1)
-    combined = Image.new("RGB", (width, total_height), "white")
+def merge_vertical(images: List[Image]) -> Image:
+    """Merge images vertically."""
+    if not images:
+        return Image.new("RGB", (100, 100), "white")
+    
+    total_height = sum(img.height for img in images)
+    max_width = max(img.width for img in images)
+    
+    merged = Image.new("RGB", (max_width, total_height), "white")
     y_offset = 0
-    for im in part_images:
-      combined.paste(im, (0, y_offset))
-      y_offset += im.height + GAP_BETWEEN_PARTS
+    for img in images:
+        merged.paste(img, (0, y_offset))
+        y_offset += img.height
+    
+    return img
 
-    out_path = os.path.join(OUTPUT_DIR, f"question_{q}.png")
-    combined.save(out_path)
-    saved_files.append(out_path)
-    print(f"Saved question {q}: {out_path} ({combined.width}x{combined.height})")
+def generate_filename(pdf_name: str, coord: Dict) -> str:
+    """Generate chunk filename from pdf name and coordinate."""
+    # Remove .pdf extension if present
+    pdf_base = Path(coord.get("pdf_name", "unknown")).stem
+    
+    # Format part for filename (remove special chars)
+    part = coord["part"].replace(")", "").replace("(", "").replace(",", "")
+    part = part.replace(" ", "_")
+    
+    return f"{pdf_base}_q{coord['question']}_{part}.png"
 
-  doc.close()
-  return saved_files
+def crop_coordinate(doc: pymupdf.Document, coord: Dict, dpi: int = DEFAULT_DPI) -> Optional[Image]:
+    """Crop a single coordinate (handles both single and multi-page)."""
+    # Normalize first
+    coord = normalize_coord(coord)
+    
+    # Validate page bounds
+    if coord["start_page"] > len(doc) or coord["start_page"] < 1:
+        return None
+    
+    # Cap end_page to actual document length
+    coord = coord.copy()
+    coord["end_page"] = min(coord["end_page"], len(doc))
+    
+    # Segment if multi-page
+    segments = segment_multipage(coord)
+    
+    images = []
+    for seg in segments:
+        img = crop_page(doc, seg["start_page"], seg["start_y"], seg["end_y"], dpi=dpi)
+        if img is not None:
+            images.append(img)
+    
+    if not images:
+        return None
+    
+    # Merge vertically
+    if len(images) == 1:
+        return images[0]
+    return merge_vertical(images)
 
-if __name__ == "__main__":
-  chunker(DATA=DATA)
+def save_coords(coords: List[Dict], pdf_name: str, coords_dir: Path = COORDS_DIR):
+    """Save normalized coordinates to JSON file."""
+    pdf_base = Path(pdf_name).stem
+    output_path = coords_dir / f"{pdf_base}.json"
+    
+    # Normalize all coords before saving
+    normalized = [normalize_coord(c) for c in coords]
+    
+    with open(output_path, 'w') as f:
+        json.dump(normalized, f, indent=2)
+    
+    return output_path
+
+def process_pdf(
+    pdf_path: str,
+    coords: List[Dict],
+    chunk_type: Literal["image", "coords"] = "image",
+    chunk_dir: Path = CHUNK_DIR,
+    coords_dir: Path = COORDS_DIR,
+    dpi: int = DEFAULT_DPI
+) -> Dict:
+    """
+    Main chunking function.
+    
+    Args:
+        pdf_path: Path to PDF file
+        coords: List of coordinate dicts from parser
+        chunk_type: "image" (crop and save images) or "coords" (only save coords)
+        chunk_dir: Directory for chunk images
+        coords_dir: Directory for coords JSON
+        dpi: Rendering DPI
+    
+    Returns:
+        Dict with processing metadata
+    """
+    pdf_path = Path(pdf_path)
+    pdf_name = pdf_path.stem
+    
+    # Create output subdirectory for this PDF
+    pdf_chunk_dir = chunk_dir / pdf_name
+    pdf_chunk_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Open PDF
+    doc = pymupdf.open(str(pdf_path))
+    
+    metadata = {
+        "pdf_source": pdf_path.name,
+        "chunks": [],
+        "total_chunks": 0,
+        "chunk_type": chunk_type
+    }
+    
+    try:
+        if chunk_type in ("image", "both"):
+            # Process each coordinate
+            for coord in coords:
+                # Normalize and segment
+                norm_coord = normalize_coord(coord)
+                segments = segment_multipage(norm_coord)
+                
+                # Crop and merge
+                images = []
+                for seg in segments:
+                    img = crop_page(doc, seg["start_page"], seg["start_y"], seg["end_y"], dpi=dpi)
+                    if img is not None:
+                        images.append(img)
+                
+                if not images:
+                    continue
+                
+                # Merge vertically
+                if len(images) == 1:
+                    final_img = images[0]
+                else:
+                    final_img = merge_vertical(images)
+                
+                # Save image
+                filename = generate_filename(coord.get("pdf_name", pdf_name), coord)
+                img_path = pdf_chunk_dir / filename
+                final_img.save(img_path, format=IMAGE_FORMAT)
+                
+                metadata["chunks"].append({
+                    "chunk_file": str(img_path.relative_to(chunk_dir)),
+                    "pdf_source": pdf_path.name,
+                    "question": coord["question"],
+                    "part": coord["part"],
+                    "coordinates": coord,
+                    "page_range": [coord["start_page"], coord["end_page"]],
+                    "chunk_type": "image"
+                })
+        
+        if chunk_type in ("coords", "both"):
+            # Save normalized coordinates
+            save_coords(coords, pdf_name, coords_dir)
+            metadata["coords_file"] = f"{pdf_name}.json"
+        
+        metadata["total_chunks"] = len(metadata["chunks"])
+        
+    finally:
+        doc.close()
+    
+    return metadata
+
+def batch_process(
+    pdf_coords_pairs: List[tuple],
+    chunk_type: Literal["image", "coords", "both"] = "image",
+    chunk_dir: Path = CHUNK_DIR,
+    coords_dir: Path = COORDS_DIR,
+    dpi: int = DEFAULT_DPI
+) -> List[Dict]:
+    """
+    Process multiple PDF-coord pairs in batch.
+    
+    Args:
+        pdf_coords_pairs: List of (pdf_path, coords_list) tuples
+        chunk_type: "image", "coords", or "both"
+        chunk_dir: Chunk output directory
+        coords_dir: Coords JSON directory
+        dpi: Rendering DPI
+    
+    Returns:
+        List of metadata dicts
+    """
+    results = []
+    for pdf_path, coords in pdf_coords_pairs:
+        meta = process_pdf(pdf_path, coords, chunk_type, CHUNK_DIR, COORDS_DIR, DEFAULT_DPI)
+        results.append(meta)
+    return results

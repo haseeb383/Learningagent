@@ -1,7 +1,7 @@
 import re
 import json
 from dataclasses import dataclass
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Literal
 
 @dataclass
 class Line:
@@ -24,16 +24,20 @@ class PartCoord:
 # ─── Column X-ranges ───
 Q_NUM_X_MIN, Q_NUM_X_MAX = 48.0, 51.0       # Question number at x≈49.6
 PART_LABEL_X_MIN, PART_LABEL_X_MAX = 71.0, 75.0  # Part labels (a)(b) at x≈72.3
+SUBPART_X_MIN, SUBPART_X_MAX = 88.0, 98.0      # Subpart labels (i)(ii) at x≈90-96
 STEM_X_MIN, STEM_X_MAX = 71.0, 75.0         # Stem text at x≈72.3
 
 HEADER_Y = 63.4
 FOOTER_Y = 780.0
 PAGE_NUM_X = 290.0
 PART_GAP = 10.0
+SUBPART_SCAN_LINES = 200              # number of lines to scan for subpart after part label
+MCQ_EMPTY_PAGE_STOP = 2               # stop after N consecutive empty pages (no questions)
 
 # Regex patterns
-Q_NUM_RE = re.compile(r'^\d+$')
+Q_NUM_RE = re.compile(r'^(\d+)')
 PART_LABEL_RE = re.compile(r'^\(([a-z])\)')    # Matches (a), (a) Find..., (b) Calculate...
+SUBPART_RE = re.compile(r'^\(([ivx]+)\)')      # Matches (i), (ii), (iii), (iv), (v)
 DOTTED_LINE_RE = re.compile(r'^\.+$')
 MARK_BOX_RE = re.compile(r'^\[\d+\]$')
 
@@ -93,6 +97,16 @@ def parse_lines_qp(content: str) -> List[Line]:
                 lines.append(Line(current_page, text, x0, y0, x0 + 10, y0 + 8))
     return lines
 
+def is_noise(text: str) -> bool:
+    """Check if text is noise (should not be treated as context)."""
+    t = text.strip().lower()
+    if t in NOISE_EXACT:
+        return True
+    for pat in NOISE_PATTERNS:
+        if pat.search(t):
+            return True
+    return False
+
 def is_noise_line(line: Line) -> bool:
     """Full noise line filter for headers/footers/page numbers."""
     if line.y0 < HEADER_Y and ('Cambridge' in line.text or 'UCLES' in line.text):
@@ -139,10 +153,35 @@ def find_context_upward(lines: List[Line], start_idx: int, current_page: int) ->
         # This line is valid context - record its y (will be the topmost as we scan up)
         if len(ln.text) > 0:
             context_start_y = ln.y0  # Keep updating - last one set is the topmost
-
+    
     return context_start_y, context_start_y is not None
     
     return None, False
+
+def find_subpart_on_line(text: str) -> Optional[str]:
+    """Check if part label text contains subpart indicator like '(b) (i)'."""
+    # Match patterns like "(b) (i)" or "(b)(i)" or "(b) (i) ..."
+    m = re.search(r'\([a-z]\)\s*\(([ivx]+)\)', text)
+    if m:
+        return m.group(1)
+    return None
+
+def find_subpart_downward(lines: List[Line], start_idx: int, max_lines: int) -> Optional[Tuple[str, float]]:
+    """Scan downward from part label to find first subpart (i) label.
+    Stops at next part label, question number, or max_lines.
+    Returns (subpart_letter, y) or None.
+    """
+    for i in range(start_idx + 1, min(start_idx + max_lines, len(lines))):
+        ln = lines[i]
+        # Stop at next part label or question number
+        if (PART_LABEL_X_MIN <= ln.x0 <= PART_LABEL_X_MAX and PART_LABEL_RE.match(ln.text)) or \
+           (Q_NUM_X_MIN <= ln.x0 <= Q_NUM_X_MAX and Q_NUM_RE.match(ln.text)):
+            break
+        if SUBPART_X_MIN <= ln.x0 <= SUBPART_X_MAX:
+            m = SUBPART_RE.match(ln.text)
+            if m and m.group(1) == 'i':
+                return m.group(1), ln.y0
+    return None
 
 def find_last_content_on_page(lines: List[Line], page: int) -> float:
     """Find last non-noise content y on a page (for page boundary)."""
@@ -173,8 +212,10 @@ def find_question_content_end(lines: List[Line], start_page: int) -> Tuple[int, 
             break
     return end_page, end_y if end_y > 0 else FOOTER_Y
 
-def parse_structured_qp(content: str) -> List[PartCoord]:
-    """Single-pass parser with context-aware boundary detection."""
+def parse_qp(content: str, mode: Literal["structured", "mcq"] = "structured") -> List[PartCoord]:
+    """Single-pass parser with context-aware boundary detection and subpart support.
+    Supports both structured (parts a,b,c) and MCQ (single questions) modes.
+    """
     lines = parse_lines_qp(content)
     lines = filter_content_lines(lines)
     lines.sort(key=lambda ln: (ln.page, ln.y0))
@@ -184,18 +225,23 @@ def parse_structured_qp(content: str) -> List[PartCoord]:
     q_start_page = 0
     q_start_y = 0.0
     current_part = None
+    current_subpart = None
     part_start_page = 0
     part_start_y = 0.0
+    subpart_start_page = 0
+    subpart_start_y = 0.0
     pending_part_end = None  # (page, y) where previous part should end
+
+    # MCQ-specific state
+    questions_found = 0
+    consecutive_empty_pages = 0
+    last_question_page = 0
+    questions_on_current_page = 0
+    current_page = 0
 
     def close_part(end_page: int, end_y: float):
         nonlocal current_part, part_start_page, part_start_y
         if current_part is not None:
-            # Multi-page fix: if part ends on different page than it started,
-            # end it at FOOTER_Y (780) on the START page
-            if end_page != part_start_page:
-                end_page = part_start_page
-                end_y = FOOTER_Y
             parts.append(PartCoord(
                 question=current_q,
                 part=current_part,
@@ -206,75 +252,159 @@ def parse_structured_qp(content: str) -> List[PartCoord]:
             ))
         current_part = None
 
+    def close_subpart(end_page: int, end_y: float):
+        nonlocal current_subpart, subpart_start_page, subpart_start_y
+        if current_subpart is not None:
+            parts.append(PartCoord(
+                question=current_q,
+                part=f"{current_part}){current_subpart})",  # e.g., "b)i)"
+                start_page=subpart_start_page,
+                start_y=round(subpart_start_y, 1),
+                end_page=end_page,
+                end_y=round(end_y, 1)
+            ))
+        current_subpart = None
+
     i = 0
     while i < len(lines):
         ln = lines[i]
         
+        # Track page changes for MCQ empty page detection
+        if ln.page != current_page:
+            # Check if current page had questions (MCQ mode)
+            if mode == "mcq":
+                if questions_on_current_page > 0:
+                    consecutive_empty_pages = 0
+                else:
+                    if questions_found > 0:
+                        consecutive_empty_pages += 1
+                        if consecutive_empty_pages >= MCQ_EMPTY_PAGE_STOP:
+                            # Stop at last found question's page, y=780
+                            close_part(last_question_page, FOOTER_Y)
+                            break
+                questions_on_current_page = 0
+            current_page = ln.page
+        
         # Question number at x≈49.6
         if Q_NUM_X_MIN <= ln.x0 <= Q_NUM_X_MAX and Q_NUM_RE.match(ln.text):
-            # Close previous part at question start (or pending)
-            if pending_part_end:
-                close_part(pending_part_end[0], pending_part_end[1])
-                pending_part_end = None
-            else:
+            # Close any open subpart first
+            if current_subpart is not None:
+                close_subpart(ln.page, ln.y0 - PART_GAP)
+            elif current_part is not None:
                 close_part(ln.page, ln.y0 - PART_GAP)
+            elif pending_part_end:
+                close_part(pending_part_end[0], pending_part_end[1])
             
-            current_q = ln.text
+            # Extract question number from capture group
+            q_match = Q_NUM_RE.match(ln.text)
+            current_q = q_match.group(1) if q_match else ln.text
             q_start_page = ln.page
             q_start_y = ln.y0
             current_part = None
+            current_subpart = None
+            
+            # MCQ: track question found
+            if mode == "mcq":
+                questions_found += 1
+                questions_on_current_page += 1
+                last_question_page = ln.page
+                # For MCQ, the question itself is the "part" (empty string in output)
+                current_part = ""  # MCQ questions have empty part
+                # Start the question at the question number
+                part_start_page = q_start_page
+                part_start_y = q_start_y
+            
             i += 1
             continue
         
-        # Part label at x≈72.3
-        if PART_LABEL_X_MIN <= ln.x0 <= PART_LABEL_X_MAX:
+        # Part label at x≈72.3 (structured mode only)
+        if mode == "structured" and PART_LABEL_X_MIN <= ln.x0 <= PART_LABEL_X_MAX:
             m = PART_LABEL_RE.match(ln.text)
             if m:
                 part_letter = m.group(1)
                 
-                # Look upward for context text
-                context_y, has_context = find_context_upward(lines, i, ln.page)
+                # Check for subpart (i) on same line
+                subpart_on_line = find_subpart_on_line(ln.text)
                 
-                if current_part is None:
-                    # FIRST PART of question: always starts at question start
+                # If not on same line, scan downward a bit
+                if not subpart_on_line:
+                    subpart_result = find_subpart_downward(lines, i, SUBPART_SCAN_LINES)
+                    if subpart_result:
+                        subpart_on_line, _ = subpart_result
+                
+                # Close any open subpart first
+                if current_subpart is not None:
+                    close_subpart(ln.page, ln.y0 - PART_GAP)
+                elif current_part is not None:
+                    close_part(ln.page, ln.y0 - PART_GAP)
+                
+                # Start new part
+                current_part = part_letter
+                current_subpart = None
+                
+                if part_letter == 'a':
+                    # First part of question starts at question start
                     part_start_page = q_start_page
                     part_start_y = q_start_y
                 else:
-                    # SUBSEQUENT PART: previous part ends at this part's boundary
-                    if has_context:
-                        # Previous part ends where this part's context starts
-                        close_part(ln.page, context_y - PART_GAP)
-                        part_start_page = ln.page
-                        part_start_y = context_y
-                    else:
-                        # No context - previous part ends at part label
-                        close_part(ln.page, ln.y0 - PART_GAP)
-                        part_start_page = ln.page
-                        part_start_y = ln.y0
+                    part_start_page = ln.page
+                    part_start_y = ln.y0
                 
-                current_part = part_letter
+                # Enter subpart mode if subpart found
+                if subpart_on_line:
+                    current_subpart = subpart_on_line
+                    # First subpart starts at part's start
+                    subpart_start_page = part_start_page
+                    subpart_start_y = part_start_y
+                
                 i += 1
                 continue
         
+        # Subpart label at x≈90-96 (structured mode only)
+        if current_subpart is not None and SUBPART_X_MIN <= ln.x0 <= SUBPART_X_MAX:
+            m = SUBPART_RE.match(ln.text)
+            if m:
+                subpart_letter = m.group(1)
+                
+                # Only create new subpart if the letter CHANGES (e.g., i -> ii)
+                # If it's the same letter, it's just the label for the current subpart
+                if subpart_letter != current_subpart:
+                    # Close previous subpart
+                    close_subpart(ln.page, ln.y0 - PART_GAP)
+                    
+                    # Start new subpart
+                    current_subpart = subpart_letter
+                    subpart_start_page = ln.page
+                    subpart_start_y = ln.y0
+                i += 1
+                continue
+        
+        # MCQ: Track questions on current page
+        if mode == "mcq" and Q_NUM_X_MIN <= ln.x0 <= Q_NUM_X_MAX and Q_NUM_RE.match(ln.text):
+            questions_on_current_page += 1
+        
         i += 1
     
-    # Handle pending part end if question ended without next part
-    if pending_part_end:
-        close_part(pending_part_end[0], pending_part_end[1])
-    
-    # Close any remaining open part at EOF
-    if current_part is not None and current_q is not None:
+    # Handle any remaining open subpart/part at EOF
+    if current_subpart is not None and current_q is not None:
         end_page, end_y = find_question_content_end(lines, q_start_page)
-        # For last part of last question: extend to FOOTER_Y to include answer space
+        end_y = FOOTER_Y
+        if end_y <= subpart_start_y:
+            end_y = subpart_start_y + 50.0
+        close_subpart(end_page, end_y)
+    elif current_part is not None and current_q is not None:
+        end_page, end_y = find_question_content_end(lines, q_start_page)
         end_y = FOOTER_Y
         if end_y <= part_start_y:
             end_y = part_start_y + 50.0
         close_part(end_page, end_y)
+    elif pending_part_end:
+        close_part(pending_part_end[0], pending_part_end[1])
     
     return parts
 
-def find_structured_qp_coords(qp_lines: str):
-    parts = parse_structured_qp(qp_lines)
+def find_structured_qp_coords(qp_lines: str, mode="structured"):
+    parts = parse_qp(qp_lines, mode)
 
     out = [
         {
@@ -288,6 +418,6 @@ def find_structured_qp_coords(qp_lines: str):
         for p in parts
     ]
 
-    with open('datapipline/pastpaperspipline/coords/qp_structured_coords.json', 'w') as f:
+    with open('datapipline/pastpaperspipline/coords/qp_coords.json', 'w') as f:
         json.dump(out, f, indent=2)
-    print("\nSaved to qp_structured_coords.json")
+    print("\nSaved to qp_coords.json")
