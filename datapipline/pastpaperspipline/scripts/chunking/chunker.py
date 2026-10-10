@@ -117,7 +117,7 @@ def merge_vertical(images: List[Image]) -> Image:
 def generate_filename(pdf_name: str, coord: Dict) -> str:
     """Generate chunk filename from pdf name and coordinate."""
     # Remove .pdf extension if present
-    pdf_base = Path(coord.get("pdf_name", "unknown")).stem
+    pdf_base = pdf_name
     
     # Format part for filename (remove special chars)
     part = coord["part"].replace(")", "").replace("(", "").replace(",", "")
@@ -232,7 +232,7 @@ def process_pdf(
                     final_img = merge_vertical(images)
                 
                 # Save image
-                filename = generate_filename(coord.get("pdf_name", pdf_name), coord)
+                filename = generate_filename(pdf_name, coord)
                 img_path = pdf_chunk_dir / filename
                 final_img.save(img_path, format=IMAGE_FORMAT)
                 
