@@ -190,7 +190,7 @@ def extract_mcq_parts(lines: List[Line]) -> List[PartCoord]:
     return parts
 
 # ─── Unified Entry Point ───
-def parse_ms(content: str, question_type: QuestionType = "structured") -> List[PartCoord]:
+def parse_marchingscheme(content: str, question_type: QuestionType = "structured") -> List[PartCoord]:
     """Parse mark scheme lines and return part coordinates."""
     lines = parse_lines_ms(content)
 
@@ -205,8 +205,8 @@ def parse_ms(content: str, question_type: QuestionType = "structured") -> List[P
 
 # ─── CLI ───
 # find_ms_coords
-def find_ms_coords(ms_lines: str, question_type: QuestionType = "structured"):
-    parts = parse_ms(ms_lines, question_type)
+def parse_ms(ms_lines: str, question_type: QuestionType = "structured"):
+    parts = parse_marchingscheme(ms_lines, question_type)
 
     out = [
         {
