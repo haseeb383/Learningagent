@@ -97,16 +97,6 @@ def parse_lines_qp(content: str) -> List[Line]:
                 lines.append(Line(current_page, text, x0, y0, x0 + 10, y0 + 8))
     return lines
 
-def is_noise(text: str) -> bool:
-    """Check if text is noise (should not be treated as context)."""
-    t = text.strip().lower()
-    if t in NOISE_EXACT:
-        return True
-    for pat in NOISE_PATTERNS:
-        if pat.search(t):
-            return True
-    return False
-
 def is_noise_line(line: Line) -> bool:
     """Full noise line filter for headers/footers/page numbers."""
     if line.y0 < HEADER_Y and ('Cambridge' in line.text or 'UCLES' in line.text):
