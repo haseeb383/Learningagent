@@ -203,8 +203,6 @@ def parse_marchingscheme(content: str, question_type: QuestionType = "structured
     else:
         raise ValueError(f"Unknown question_type: {question_type}")
 
-# ─── CLI ───
-# find_ms_coords
 def parse_ms(ms_lines: str, question_type: QuestionType = "structured"):
     parts = parse_marchingscheme(ms_lines, question_type)
 
@@ -223,3 +221,7 @@ def parse_ms(ms_lines: str, question_type: QuestionType = "structured"):
     with open('datapipline/pastpaperspipline/coords/ms_coords.json', 'w') as f:
         json.dump(out, f, indent=2)
     print("\nSaved to ms_coords.json")
+
+# with open(r"D:\chrome download\importantfiles\learningagent/lines_ms.txt", 'r') as file:
+#     lines = file.read()
+# parse_ms(lines)

@@ -7,6 +7,13 @@ from pathlib import Path
 COORDS_DIR = "datapipline/pastpaperspipline/coords"
 CHUNKS_DIR = "datapipline/pastpaperspipline/chunks"
 
+def normalize_mcq_coords(coords):
+  for coord in coords:
+    if coord['start_y'] == coord['end_y']:
+      coord['end_y'] += 20
+    coord['start_y'] -= 5
+  return coords
+
 def _noramlize_coordinates(coords):
   for coord in coords:
     coord['start_y'] -= 10
@@ -65,17 +72,47 @@ def _crop_questions(pdf_path, coord, storing_dir):
   final_image.paste(cropped, (0, 0))
   final_image.save(storing_dir)
 
-def create_chunks(pdf_path, coords):
-  normalized_coords = _noramlize_coordinates(coords)
+def create_chunks_from_scratch(pdf_path, coords, chunk_type="img", question_type="structured"):
   pdf_path_path = Path(pdf_path)
   pdf_name = pdf_path_path.stem
-  _save_coords(pdf_name, normalized_coords)
+
+  if question_type == 'mcq':
+    normalized_coords = normalize_mcq_coords(coords)
+    _save_coords(pdf_name, normalized_coords)
+    if chunk_type == "coords":
+      return None
+    storing_dir = CHUNKS_DIR + f"/{pdf_name}"
+    os.makedirs(storing_dir, exist_ok=True)
+    for coord in normalized_coords:
+      _crop_questions(pdf_path, coord, storing_dir + f"/{_generate_file_name(pdf_name, coord)}.png")
+  else:
+    normalized_coords = _noramlize_coordinates(coords)
+    _save_coords(pdf_name, normalized_coords)
+    if chunk_type == "coords":
+      return None
+    storing_dir = CHUNKS_DIR + f"/{pdf_name}"
+    os.makedirs(storing_dir, exist_ok=True)
+    for coord in normalized_coords:
+      if coord['start_page'] != coord['end_page']:
+        segment_coords = _create_segment_coords(coord)
+        _crop_segments(pdf_path, segment_coords, storing_dir + f"/{_generate_file_name(pdf_name, coord)}.png")
+      else:
+        _crop_questions(pdf_path, coord, storing_dir + f"/{_generate_file_name(pdf_name, coord)}.png")
+
+def create_create_chunks_from_coords(pdf_path, coords):
+  pdf_path_path = Path(pdf_path)
+  pdf_name = pdf_path_path.stem
   storing_dir = CHUNKS_DIR + f"/{pdf_name}"
   os.makedirs(storing_dir, exist_ok=True)
-  for coord in normalized_coords:
+  for coord in coords:
     if coord['start_page'] != coord['end_page']:
       segment_coords = _create_segment_coords(coord)
       _crop_segments(pdf_path, segment_coords, storing_dir + f"/{_generate_file_name(pdf_name, coord)}.png")
     else:
       _crop_questions(pdf_path, coord, storing_dir + f"/{_generate_file_name(pdf_name, coord)}.png")
 
+# with open('datapipline/pastpaperspipline/coords/ms_coords.json', 'r') as file:
+#     maths_structured_ms_coords = json.load(file)
+# print(maths_structured_ms_coords)
+# os.makedirs("datapipline/pastpaperspipline/chunks/9709_w25_ms_55", exist_ok=True)
+# _crop_questions("datapipline/pastpaperspipline/downlaods/9709_w25_ms_55.pdf", maths_structured_ms_coords[1], "datapipline/pastpaperspipline/chunks/9709_w25_ms_55" + f"/{_generate_file_name("9709_w25_ms_55", maths_structured_ms_coords[1])}.png")
