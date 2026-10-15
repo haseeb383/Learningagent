@@ -7,6 +7,11 @@ Q_NUM_X_MIN, Q_NUM_X_MAX = 48.0, 51.0
 PART_LABEL_X_MIN, PART_LABEL_X_MAX = 71.0, 75.0
 SUBPART_X_MIN, SUBPART_X_MAX = 88.0, 98.0
 CONTENT_TOP_Y = 60.0
+BOTTOM_Y = 780.0
+
+BLANK_MARKERS = ('blank page',)
+HEADING_MARKERS = ('additional page',)
+IGNORABLE_RE = re.compile(r'^\[?\s*turn over', re.I)
 
 Q_NUM_RE = re.compile(r'^(\d+)')
 PART_LABEL_RE = re.compile(r'^\(([a-z])\)(?![ivx])')
@@ -33,7 +38,6 @@ class PartCoord:
   end_y: float
 
 NOISE_EXACT = {
-  ',\x01\x01\x01\x01\t\x01\x01\x01\x01\x01\x01\x01\x04,',
   'dfd',
   'do not write in this margin',
   'cambridge university press & assessment',
@@ -106,6 +110,55 @@ def _check_context_upward(lines, line):
     counter += 1
   return context_start_y
 
+def _norm(text):
+  return ' '.join(text.lower().split())
+
+def _looks_blank(real):
+  if not real:
+    return True
+  # no question number, part label, subpart label, or long text on the page
+  has_structure = any(
+    _check_for_question_number(l) or _find_part(l) or _find_subpart(l) or len(l.text) > 25
+    for l in real
+  )
+  return not has_structure
+
+def _blank_pages(lines):
+  by_page = {}
+  for l in lines:
+    by_page.setdefault(l.page, []).append(l)
+
+  blank = set()
+  for p, ls in by_page.items():
+    texts = [_norm(l.text) for l in ls]
+
+    # 1) the page announces itself
+    if any(m in t for t in texts for m in BLANK_MARKERS) or \
+       any(t.startswith(m) for t in texts for m in HEADING_MARKERS):
+      blank.add(p)
+      continue
+
+    # 2) fallback: nothing real on the page
+    real = [
+      l for l in ls
+      if CONTENT_TOP_Y <= l.y0 <= BOTTOM_Y
+      and not _is_noise(l.text)
+      and not re.fullmatch(r'\d+', l.text.strip())
+      and not IGNORABLE_RE.match(l.text.strip())
+    ]
+    if _looks_blank(real):
+      blank.add(p)
+  return blank
+
+def _trim_end(p, blank):
+  # part ends "above the first line of the next page" -> really ended on the previous page
+  if p.end_page > p.start_page and p.end_y <= CONTENT_TOP_Y + 5:
+    p.end_page -= 1
+    p.end_y = BOTTOM_Y
+    while p.end_page in blank and p.end_page > p.start_page:
+      p.end_page -= 1
+  return p
+
 def _find_part(line):
   matches = None
   if _find_subpart(line) is not None:
@@ -139,10 +192,8 @@ def _find_end_y(lines, end_line):
   y = (y if y is not None else end_line.y0) - 10
   return max(y, CONTENT_TOP_Y)
 
-# this function if the parser comes accross a question number
 def _state_coords_end_of_question(cq, cp, csp, start_line_question, start_line_part, start_line_subpart, end_line, lines):
   if cq:
-    # if there is a question going on and there is no sup part or part and the parser comes accross question number closing a question
     if not cp and not csp:
       start_y = start_line_question.y0
       end_y = end_line.y0 - 10
@@ -152,7 +203,7 @@ def _state_coords_end_of_question(cq, cp, csp, start_line_question, start_line_p
       part = ''
       coordinates = PartCoord(question, part, start_page, start_y, end_page, end_y)
       return coordinates
-    # if there is part going on but no subpart going on and the parser comes accross a question number closing a part
+
     elif cp and not csp:
       start_y = _find_start_y(lines, start_line_part)
       end_y = end_line.y0 - 10
@@ -162,7 +213,7 @@ def _state_coords_end_of_question(cq, cp, csp, start_line_question, start_line_p
       part = cp
       coordinates = PartCoord(question, part, start_page, start_y, end_page, end_y)
       return coordinates
-    # if there is a subpart going on inside a part and the parser comes accross a question number closing a subpart
+
     elif csp:
       start_y = _find_start_y(lines, start_line_subpart)
       end_y = end_line.y0 - 10
@@ -174,10 +225,8 @@ def _state_coords_end_of_question(cq, cp, csp, start_line_question, start_line_p
       return coordinates
   return None
 
-# this function if a parser comes accross a part label
 def _state_coords_end_of_part(cq, cp, csp, start_line_part, start_line_subpart, end_line, lines):
   if cq and cp:
-    # if there is a part going on but no sub part and the parser finds a part lable closing a part
     if cp and not csp:
       start_y = _find_start_y(lines, start_line_part)
       end_y = _find_end_y(lines, end_line)
@@ -187,7 +236,7 @@ def _state_coords_end_of_part(cq, cp, csp, start_line_part, start_line_subpart, 
       part = cp
       coordinates = PartCoord(question, part, start_page, start_y, end_page, end_y)
       return coordinates
-    # if there is a subpart going on and the parser finds a part label close a subpart
+    
     elif csp:
       start_y = _find_start_y(lines, start_line_subpart)
       end_y = end_line.y0 - 10
@@ -199,13 +248,9 @@ def _state_coords_end_of_part(cq, cp, csp, start_line_part, start_line_subpart, 
       return coordinates
   return None
 
-# this function if the parser comes accross subpart label
 def _state_coords_end_of_subpart(cq, cp, csp, start_line_part, start_line_subpart, end_line, lines):
-  # if there is no subpart and the parser comes accross a subapart
   if csp:
     if cq and cp and csp != 'i':
-      # if there is subpart going on and the parser finds a sub part closing a subpart
-      # print(f"there is subpart going on and now it is closing this is where it started {start_line_subpart}")
       start_y = start_line_subpart.y0
       end_y = end_line.y0 - 10
       start_page  = start_line_subpart.page
@@ -214,9 +259,8 @@ def _state_coords_end_of_subpart(cq, cp, csp, start_line_part, start_line_subpar
       part = cp + ')' + csp
       coordinates = PartCoord(question, part, start_page, start_y, end_page, end_y)
       return coordinates
+    
     elif cq and cp and csp == 'i':
-      # if there is subpart going on and the parser finds a sub part closing a subpart
-      # print(f"there is a part going on and this is the first subpart of the part {csp}")
       start_y = _find_start_y(lines, start_line_part)
       end_y = end_line.y0 - 10
       start_page  = start_line_part.page
@@ -227,10 +271,41 @@ def _state_coords_end_of_subpart(cq, cp, csp, start_line_part, start_line_subpar
       return coordinates   
   return None
 
+def _state_coords_last_part(cq, cp, csp, start_line_part, start_line_subpart, start_line_question, lines):
+  if cq and not cp and not csp:
+    start_y = start_line_question.y0
+    end_y = 780
+    start_page  = start_line_question.page
+    end_page = start_line_question.page
+    question = cq
+    part = ''
+    coordinates = PartCoord(question, part, start_page, start_y, end_page, end_y)
+    return coordinates
+  
+  elif cq and cp and not csp:
+    start_y = _find_start_y(lines, start_line_part)
+    end_y = 780
+    start_page  = start_line_part.page
+    end_page = start_line_part.page
+    question = cq
+    part = cp
+    coordinates = PartCoord(question, part, start_page, start_y, end_page, end_y)
+    return coordinates
+  
+  elif cq and cp and csp:
+    start_y = start_line_subpart.y0
+    end_y = 780
+    start_page  = start_line_question.page
+    end_page = start_line_question.page
+    question = cq
+    part = cp + ')' + csp
+    coordinates = PartCoord(question, part, start_page, start_y, end_page, end_y)
+    return coordinates
 
 def parse_question_paper(lines):
-  empty_page_counter = 0
-  current_page = lines[0].page
+  lines = get_data_from_lines(lines)
+  blank = _blank_pages(lines)
+  lines = [l for l in lines if l.page not in blank]
   current_question = None
   current_part = None
   current_subpart = None
@@ -249,7 +324,6 @@ def parse_question_paper(lines):
       current_part = None
       current_subpart = None
       current_question_start_line = line
-      # print(f"question found {current_question} at line {current_question_start_line}")
 
     part_found = _find_part(line) or current_part
     if part_found != current_part:
@@ -259,34 +333,27 @@ def parse_question_paper(lines):
       current_part = _find_part(line)
       current_part_start_line = line
       current_subpart = None
-      # print(f"part found {current_part} at line {current_part_start_line}")
 
     subpart_found = _find_subpart(line) or current_subpart
     if subpart_found != current_subpart:
-      # print(f"creating another coordinate set here is the start line {current_subpart_start_line}")
       coordinates = _state_coords_end_of_subpart(current_question, current_part, current_subpart, current_part_start_line, current_subpart_start_line, line, lines)
       if coordinates:
         parts.append(coordinates)
       current_subpart = _find_subpart(line)
       current_subpart_start_line = line
-      # print(f"sub part found {current_subpart} at line {current_subpart_start_line}")
 
-    # if counter > 130:
+    # if counter > 500:
     #   break
     # counter += 1
 
-    if line.page != current_page:
-      current_page = line.page
-      if len(parts) == 0:
-        empty_page_counter += 1
-      else:
-        empty_page_counter = 0
-      if empty_page_counter > 2:
-        break
-  return parts
+  coords = _state_coords_last_part(current_question, current_part, current_subpart, current_part_start_line, current_subpart_start_line, current_question_start_line, lines)
+  if coords:
+    parts.append(coords)
+
+  # return parts
+  return [_trim_end(p, blank) for p in parts]
 
 def parse_qp(lines):
-  lines = get_data_from_lines(lines)
   parts = parse_question_paper(lines)
   out = [
     {
@@ -302,11 +369,3 @@ def parse_qp(lines):
   with open('datapipline/pastpaperspipline/coords/qp_coords.json', 'w') as f:
       json.dump(out, f, indent=2)
   print("\nSaved to qp_coords.json")
-
-# with open(r'D:\chrome download\importantfiles\learningagent/lines_qp_structured.txt', 'r') as file:
-#   lines = file.read()
-# lines = get_data_from_lines(lines)
-# print(lines[123])
-# print(parse_question_paper(lines[122:]))
-# print(_find_subpart(Line(page=5, text='(i) State the feature of the graph that represents the distance travelled by the car between', x0=96.0, y0=63.8, x1=106.0, y1=71.8)))
-# print(_find_part(Line(page=5, text='(i) State the feature of the graph that represents the distance travelled by the car between', x0=96.0, y0=63.8, x1=106.0, y1=71.8)))

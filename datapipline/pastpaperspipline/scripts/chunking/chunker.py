@@ -78,3 +78,4 @@ def create_chunks(pdf_path, coords):
       _crop_segments(pdf_path, segment_coords, storing_dir + f"/{_generate_file_name(pdf_name, coord)}.png")
     else:
       _crop_questions(pdf_path, coord, storing_dir + f"/{_generate_file_name(pdf_name, coord)}.png")
+
