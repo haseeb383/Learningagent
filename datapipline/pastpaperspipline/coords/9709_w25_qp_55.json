@@ -1,0 +1,274 @@
+[
+  {
+    "question": "1",
+    "part": "a",
+    "start_page": 3,
+    "start_y": 53.4,
+    "end_page": 3,
+    "end_y": 313.4,
+    "source_pdf": "9709_w25_qp_55",
+    "chunk_id": "9709_w25_qp_55_q1_a_1",
+    "chunk_combination": [
+      "9709_w25_qp_55_q1_a_1",
+      "9709_w25_qp_55_q1_b_2"
+    ],
+    "question_type": "structured"
+  },
+  {
+    "question": "1",
+    "part": "b",
+    "start_page": 3,
+    "start_y": 313.4,
+    "end_page": 3,
+    "end_y": 780.0,
+    "source_pdf": "9709_w25_qp_55",
+    "chunk_id": "9709_w25_qp_55_q1_b_2",
+    "chunk_combination": [
+      "9709_w25_qp_55_q1_a_1",
+      "9709_w25_qp_55_q1_b_2"
+    ],
+    "question_type": "structured"
+  },
+  {
+    "question": "2",
+    "part": "a",
+    "start_page": 4,
+    "start_y": 53.4,
+    "end_page": 4,
+    "end_y": 780.0,
+    "source_pdf": "9709_w25_qp_55",
+    "chunk_id": "9709_w25_qp_55_q2_a_3",
+    "chunk_combination": [
+      "9709_w25_qp_55_q2_a_3",
+      "9709_w25_qp_55_q2_b_4"
+    ],
+    "question_type": "structured"
+  },
+  {
+    "question": "2",
+    "part": "b",
+    "start_page": 5,
+    "start_y": 53.4,
+    "end_page": 5,
+    "end_y": 780.0,
+    "source_pdf": "9709_w25_qp_55",
+    "chunk_id": "9709_w25_qp_55_q2_b_4",
+    "chunk_combination": [
+      "9709_w25_qp_55_q2_a_3",
+      "9709_w25_qp_55_q2_b_4"
+    ],
+    "question_type": "structured"
+  },
+  {
+    "question": "3",
+    "part": "a",
+    "start_page": 6,
+    "start_y": 53.4,
+    "end_page": 6,
+    "end_y": 780.0,
+    "source_pdf": "9709_w25_qp_55",
+    "chunk_id": "9709_w25_qp_55_q3_a_5",
+    "chunk_combination": [
+      "9709_w25_qp_55_q3_a_5",
+      "9709_w25_qp_55_q3_b_6",
+      "9709_w25_qp_55_q3_c_7"
+    ],
+    "question_type": "structured"
+  },
+  {
+    "question": "3",
+    "part": "b",
+    "start_page": 7,
+    "start_y": 53.4,
+    "end_page": 7,
+    "end_y": 352.4,
+    "source_pdf": "9709_w25_qp_55",
+    "chunk_id": "9709_w25_qp_55_q3_b_6",
+    "chunk_combination": [
+      "9709_w25_qp_55_q3_a_5",
+      "9709_w25_qp_55_q3_b_6",
+      "9709_w25_qp_55_q3_c_7"
+    ],
+    "question_type": "structured"
+  },
+  {
+    "question": "3",
+    "part": "c",
+    "start_page": 7,
+    "start_y": 352.4,
+    "end_page": 7,
+    "end_y": 780.0,
+    "source_pdf": "9709_w25_qp_55",
+    "chunk_id": "9709_w25_qp_55_q3_c_7",
+    "chunk_combination": [
+      "9709_w25_qp_55_q3_a_5",
+      "9709_w25_qp_55_q3_b_6",
+      "9709_w25_qp_55_q3_c_7"
+    ],
+    "question_type": "structured"
+  },
+  {
+    "question": "4",
+    "part": "a",
+    "start_page": 8,
+    "start_y": 53.4,
+    "end_page": 8,
+    "end_y": 780.0,
+    "source_pdf": "9709_w25_qp_55",
+    "chunk_id": "9709_w25_qp_55_q4_a_8",
+    "chunk_combination": [
+      "9709_w25_qp_55_q4_a_8",
+      "9709_w25_qp_55_q4_b_9",
+      "9709_w25_qp_55_q4_c_10",
+      "9709_w25_qp_55_q4_d_11"
+    ],
+    "question_type": "structured"
+  },
+  {
+    "question": "4",
+    "part": "b",
+    "start_page": 9,
+    "start_y": 50.0,
+    "end_page": 9,
+    "end_y": 248.39999999999998,
+    "source_pdf": "9709_w25_qp_55",
+    "chunk_id": "9709_w25_qp_55_q4_b_9",
+    "chunk_combination": [
+      "9709_w25_qp_55_q4_a_8",
+      "9709_w25_qp_55_q4_b_9",
+      "9709_w25_qp_55_q4_c_10",
+      "9709_w25_qp_55_q4_d_11"
+    ],
+    "question_type": "structured"
+  },
+  {
+    "question": "4",
+    "part": "c",
+    "start_page": 9,
+    "start_y": 248.39999999999998,
+    "end_page": 9,
+    "end_y": 582.2,
+    "source_pdf": "9709_w25_qp_55",
+    "chunk_id": "9709_w25_qp_55_q4_c_10",
+    "chunk_combination": [
+      "9709_w25_qp_55_q4_a_8",
+      "9709_w25_qp_55_q4_b_9",
+      "9709_w25_qp_55_q4_c_10",
+      "9709_w25_qp_55_q4_d_11"
+    ],
+    "question_type": "structured"
+  },
+  {
+    "question": "4",
+    "part": "d",
+    "start_page": 9,
+    "start_y": 582.2,
+    "end_page": 9,
+    "end_y": 780.0,
+    "source_pdf": "9709_w25_qp_55",
+    "chunk_id": "9709_w25_qp_55_q4_d_11",
+    "chunk_combination": [
+      "9709_w25_qp_55_q4_a_8",
+      "9709_w25_qp_55_q4_b_9",
+      "9709_w25_qp_55_q4_c_10",
+      "9709_w25_qp_55_q4_d_11"
+    ],
+    "question_type": "structured"
+  },
+  {
+    "question": "5",
+    "part": "a",
+    "start_page": 10,
+    "start_y": 50.0,
+    "end_page": 10,
+    "end_y": 780.0,
+    "source_pdf": "9709_w25_qp_55",
+    "chunk_id": "9709_w25_qp_55_q5_a_12",
+    "chunk_combination": [
+      "9709_w25_qp_55_q5_a_12",
+      "9709_w25_qp_55_q5_b_13",
+      "9709_w25_qp_55_q5_c_14"
+    ],
+    "question_type": "structured"
+  },
+  {
+    "question": "5",
+    "part": "b",
+    "start_page": 11,
+    "start_y": 50.0,
+    "end_page": 11,
+    "end_y": 456.4,
+    "source_pdf": "9709_w25_qp_55",
+    "chunk_id": "9709_w25_qp_55_q5_b_13",
+    "chunk_combination": [
+      "9709_w25_qp_55_q5_a_12",
+      "9709_w25_qp_55_q5_b_13",
+      "9709_w25_qp_55_q5_c_14"
+    ],
+    "question_type": "structured"
+  },
+  {
+    "question": "5",
+    "part": "c",
+    "start_page": 11,
+    "start_y": 456.4,
+    "end_page": 11,
+    "end_y": 780.0,
+    "source_pdf": "9709_w25_qp_55",
+    "chunk_id": "9709_w25_qp_55_q5_c_14",
+    "chunk_combination": [
+      "9709_w25_qp_55_q5_a_12",
+      "9709_w25_qp_55_q5_b_13",
+      "9709_w25_qp_55_q5_c_14"
+    ],
+    "question_type": "structured"
+  },
+  {
+    "question": "6",
+    "part": "a",
+    "start_page": 12,
+    "start_y": 50.0,
+    "end_page": 12,
+    "end_y": 508.4,
+    "source_pdf": "9709_w25_qp_55",
+    "chunk_id": "9709_w25_qp_55_q6_a_15",
+    "chunk_combination": [
+      "9709_w25_qp_55_q6_a_15",
+      "9709_w25_qp_55_q6_b_16",
+      "9709_w25_qp_55_q6_c_17"
+    ],
+    "question_type": "structured"
+  },
+  {
+    "question": "6",
+    "part": "b",
+    "start_page": 12,
+    "start_y": 508.4,
+    "end_page": 12,
+    "end_y": 780.0,
+    "source_pdf": "9709_w25_qp_55",
+    "chunk_id": "9709_w25_qp_55_q6_b_16",
+    "chunk_combination": [
+      "9709_w25_qp_55_q6_a_15",
+      "9709_w25_qp_55_q6_b_16",
+      "9709_w25_qp_55_q6_c_17"
+    ],
+    "question_type": "structured"
+  },
+  {
+    "question": "6",
+    "part": "c",
+    "start_page": 13,
+    "start_y": 50.0,
+    "end_page": 13,
+    "end_y": 780,
+    "source_pdf": "9709_w25_qp_55",
+    "chunk_id": "9709_w25_qp_55_q6_c_17",
+    "chunk_combination": [
+      "9709_w25_qp_55_q6_a_15",
+      "9709_w25_qp_55_q6_b_16",
+      "9709_w25_qp_55_q6_c_17"
+    ],
+    "question_type": "structured"
+  }
+]
