@@ -33,14 +33,11 @@ def extract_lines(pdf_path: str) -> list[dict]:
   data = ast.literal_eval(str(pages_out))
   lines = ""
   for p in data:
-      if p["page_number"] >= 2:
-          lines = lines + f'=== Page {p["page_number"]} === \n'
-          # print(f'\n=== Page {p["page_number"]} === \n')
-          for line in p["lines"]:
-              text = line["text"][:100].encode('ascii', 'replace').decode('ascii')
-              lines = lines + f'  y={line["y0"]:.1f} x={line["x0"]:.1f}: {text} \n'
+    if p["page_number"] >= 2:
+      lines = lines + f'=== Page {p["page_number"]} === \n'
+      # print(f'\n=== Page {p["page_number"]} === \n')
+      for line in p["lines"]:
+        text = line["text"][:100].encode('ascii', 'replace').decode('ascii')
+        lines = lines + f'  y={line["y0"]:.1f} x={line["x0"]:.1f}: {text} \n'
   return lines
 
-with open(r"D:\chrome download\importantfiles\learningagent\lines_ms_structured.txt", "w") as file:
-  lines = extract_lines("datapipline/pastpaperspipline/downlaods/9702_s26_ms_22.pdf")
-  file.write(lines)

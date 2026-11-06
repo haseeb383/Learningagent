@@ -1,38 +1,37 @@
 import base64
+import requests
 import json
 from openai import OpenAI
 from dotenv import dotenv_values
 
-
 config = dotenv_values(".env")
 SCALE_DOWN_CDMS_API_KEY = config.get("SCALE_DOWN_CDMS_API_KEY")
+CDMS_API_KEY = config.get("CDMS_API_KEY_PROD")
 
 client = OpenAI(base_url="https://api.scaledown.xyz/v1", api_key=SCALE_DOWN_CDMS_API_KEY)
+second_client = OpenAI(base_url="https://api.scaledown.xyz/v1", api_key=CDMS_API_KEY)
 
-image_path = "datapipline/pastpaperspipline/chunks/9702_s26_qp_22/9702_s26_qp_22_q1_a.png"
-def encode_image(image_path):
-  with open(image_path, "rb") as image_file:
-    base64_image = base64.b64encode(image_file.read()).decode("utf-8")
-    return base64_image
+def encode_document(path):
+  with open(path, "rb") as f:
+    document = base64.b64encode(f.read()).decode()
+  return document
 
-base64_image = encode_image(image_path)
-test_invoice = "Acme Corp invoiced $500 on 2024-01-05."
-
-
-def extract_from_invoice(client, content):
+def extract_coordinates(client, question_lines, current_state, instruction):
   r = client.chat.completions.create(
     model="extract",
-    messages=[{"role": "user", "content": content}],
+    messages=[{"role": "user", "content": instruction + "\n" + "here is the input" + "\n" + question_lines + f"\nand here is the current state {current_state}"}],
     response_format={
       "type": "json_schema",
       "json_schema": {
-          "name": "invoice",
+          "name": "pdf lines",
           "schema": {
             "type": "object",
             "properties": {
-              "vendor": {"type": "string", "description": "company name"},
-              "amount": {"type": "string", "description": "dollar amount"},
-              "date": {"type": "string", "description": "invoice date"},
+              "start_y": {"type": "float", "description": "the start_y corrdinate"},
+              "end_y": {"type": "float", "description": "the end_y corrdinate"},
+              "start_page": {"type": "integer", "description": "the start_page number"},
+              "end_page": {"type": "integer", "description": "the end_page number"},
+              "question": {"type": "string", "description": "the question and part you extracted"}
             },
           },
         },
@@ -41,26 +40,28 @@ def extract_from_invoice(client, content):
   result = json.loads(r.choices[0].message.content)
   return result["entities"]
 
-def extract_marks_from_images(image):
-  pass
+def choose_topic_and_rate(client, image, topic_list):
   r = client.chat.completions.create(
     model="extract",
-    messages=[{"role": "user", "content": "Extract the marks of the question."}],
+    messages=[{"role": "user", "content": f"Classify the following question into exactly one topic from this list: {topic_list}"}],
     response_format={
       "type": "json_schema",
       "json_schema": {
-        "name": "question",
-        "schema": {
+          "name": "invoice",
+          "schema": {
             "type": "object",
             "properties": {
-              "marks": {"type": "integer", "description": "marks of the quesiton"},
+              "vendor": {"type": "string", "description": "which topic this question is from the list"},
+            },
           },
         },
       },
-    },
-    extra_body={"document": image, "document_mime_type": "image/png"},
+    extra_body={"document": image, "document_mime_type": "image/jpeg"},
   )
-  print(r)
-  # return json.loads(r.choices[0].message.content)["entities"]
+  result = json.loads(r.choices[0].message.content)
+  print(result["entities"])
 
-extract_marks_from_images(base64_image)
+topic_list = ["user defined datatypes", "file organization and access", "recursion", "programming paradigms", "file processing and exceptions handeling", "unclassified"]
+image_path = "datapipline/pastpaperspipline/chunks/9618_s26_qp_41/9618_s26_qp_41_q1_.png"
+base64_image = encode_document(image_path)
+choose_topic_and_rate(second_client, base64_image, topic_list)

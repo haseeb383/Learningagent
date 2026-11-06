@@ -3,6 +3,8 @@ import json
 import pdfplumber
 from PIL import Image
 from pathlib import Path
+from extract_lines import extract_lines
+from parse_qp import parse_qp, get_data_from_lines, _blank_pages
 
 COORDS_DIR = "datapipline/pastpaperspipline/coords"
 CHUNKS_DIR = "datapipline/pastpaperspipline/chunks"
@@ -138,3 +140,40 @@ def create_create_chunks_from_coords(pdf_path, coords, doc_type="qp"):
     segment_coords = _crop_one(pdf_path, coord, out_path, bounds)
     chunks_created.append((segment_coords, out_path))   # was append(a, b): TypeError
   return chunks_created
+
+def create_text_chunks(lines, coords):
+  chunks = []
+  start_index_line = 0
+  for coord in coords:
+    found_coord_start = False
+    chunk_text = ''
+    for index in range(start_index_line, len(lines)):
+      line = lines[index]
+      if line.page == coord.start_page and line.y0 == coord.start_y:
+        start_chunk_line = line
+        print(f"found the start of a coord at {start_chunk_line}")
+        found_coord_start = True
+      if found_coord_start:
+        chunk_text = chunk_text + line.text
+        if line.page == coord.end_page and line.y0 == coord.end_y:
+          end_chunk_line = line
+          print(f"found the end of a coord at {end_chunk_line}")
+          start_index_line = index
+          chunks.append(chunk_text)
+          break
+      else:
+        continue
+  return chunks
+
+# pdf_path = "datapipline/pastpaperspipline/downlaods/9702_s26_qp_22.pdf"
+# lines_raw, lines_list = extract_lines(pdf_path=pdf_path)
+# # print(lines_list[0])
+# parts = parse_qp(lines_raw, pdf_path, "structured")
+# lines = get_data_from_lines(lines_raw)
+# blank = _blank_pages(lines)
+# lines = [l for l in lines if l.page not in blank]
+# # first_line = str(lines[0])
+# # print(first_line)
+
+# print(create_text_chunks(lines, parts))
+# # print(parts[0])
