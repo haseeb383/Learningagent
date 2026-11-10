@@ -18,12 +18,12 @@ import json
 #     maths_structured_ms_coords = json.load(file)
 # create_chunks_from_scratch(pdf_path=maths_structured_ms_path, coords=maths_structured_ms_coords, doc_type="ms")
 
-# physics_structured_qp_path = "datapipline/pastpaperspipline/downlaods/9702_s26_qp_22.pdf"
-# physics_structured_qp_lines = extract_lines(physics_structured_qp_path)
-# parse_qp(physics_structured_qp_lines, physics_structured_qp_path, "structured")
-# with open('datapipline/pastpaperspipline/coords/qp_coords.json', 'r') as file:
-#     physics_structured_qp_coords = json.load(file)
-# create_chunks_from_scratch(pdf_path=physics_structured_qp_path, coords=physics_structured_qp_coords)
+physics_structured_qp_path = "datapipline/pastpaperspipline/downlaods/9702_s26_qp_22.pdf"
+physics_structured_qp_lines = extract_lines(physics_structured_qp_path)
+parse_qp(physics_structured_qp_lines, physics_structured_qp_path, "structured", "all", False)
+with open('datapipline/pastpaperspipline/coords/qp_coords.json', 'r') as file:
+    physics_structured_qp_coords = json.load(file)
+create_chunks_from_scratch(pdf_path=physics_structured_qp_path, coords=physics_structured_qp_coords)
 
 # physics_structured_ms_path = "datapipline/pastpaperspipline/downlaods/9702_s26_ms_22.pdf"
 # physics_structured_ms_lines = extract_lines("datapipline/pastpaperspipline/downlaods/9702_s26_ms_22.pdf")
@@ -46,9 +46,9 @@ import json
 #     physics_mcq_ms_coords = json.load(file)
 # create_chunks_from_scratch(pdf_path=physics_mcq_ms_path, coords=physics_mcq_ms_coords, question_type='mcq', doc_type="ms")
 
-computer_paper_4_qp_path = "datapipline/pastpaperspipline/downlaods/9618_s26_qp_41.pdf"
-computer_paper_4_qp_lines = extract_lines(computer_paper_4_qp_path)
-parse_qp(computer_paper_4_qp_lines, computer_paper_4_qp_path, "structured", "question")
-with open('datapipline/pastpaperspipline/coords/qp_coords.json', 'r') as file:
-    computer_paper_4_qp_coords = json.load(file)
-create_chunks_from_scratch(pdf_path=computer_paper_4_qp_path, coords=computer_paper_4_qp_coords)
+# computer_paper_4_qp_path = "datapipline/pastpaperspipline/downlaods/9618_s26_qp_41.pdf"
+# computer_paper_4_qp_lines = extract_lines(computer_paper_4_qp_path)
+# parse_qp(computer_paper_4_qp_lines, computer_paper_4_qp_path, "structured", "question")
+# with open('datapipline/pastpaperspipline/coords/qp_coords.json', 'r') as file:
+#     computer_paper_4_qp_coords = json.load(file)
+# create_chunks_from_scratch(pdf_path=computer_paper_4_qp_path, coords=computer_paper_4_qp_coords)

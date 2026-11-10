@@ -42,6 +42,9 @@ class PartCoord:
   chunk_id: str = ''
   chunk_combination: List[str] = field(default_factory=list)
   question_type: str = ''
+  subject_code: str = ''
+  ms_source_pdf: str = ''
+  ms_chunk_id: str = ''
 
 NOISE_EXACT = {
   'dfd',
@@ -302,7 +305,7 @@ def _state_coords_last_part(cq, cp, csp, start_line_part, start_line_subpart, st
     coordinates = PartCoord(question, part, start_page, start_y, end_page, end_y)
     return coordinates
 
-def parse_question_paper(lines, coord_type="all"):
+def parse_question_paper(lines, coord_type="all", include_subpart=False):
   lines = get_data_from_lines(lines)
   blank = _blank_pages(lines)
   lines = [l for l in lines if l.page not in blank]
@@ -335,13 +338,14 @@ def parse_question_paper(lines, coord_type="all"):
         current_part_start_line = line
         current_subpart = None
 
-      subpart_found = _find_subpart(line) or current_subpart
-      if subpart_found != current_subpart:
-        coordinates = _state_coords_end_of_subpart(current_question, current_part, current_subpart, current_part_start_line, current_subpart_start_line, line, lines)
-        if coordinates:
-          parts.append(coordinates)
-        current_subpart = _find_subpart(line)
-        current_subpart_start_line = line
+      if include_subpart:
+        subpart_found = _find_subpart(line) or current_subpart
+        if subpart_found != current_subpart:
+          coordinates = _state_coords_end_of_subpart(current_question, current_part, current_subpart, current_part_start_line, current_subpart_start_line, line, lines)
+          if coordinates:
+            parts.append(coordinates)
+          current_subpart = _find_subpart(line)
+          current_subpart_start_line = line
 
     # if counter > 500:
     #   break
@@ -358,20 +362,24 @@ def enrich(parts, pdf_name):
   by_question = {}
   for i, p in enumerate(parts, start=1):
     p.source_pdf = pdf_name
+    pdf_details = pdf_name.split('_')
+    p.subject_code = pdf_details[0]
+    p.ms_source_pdf = pdf_name.replace("qp", "ms")
     part = p.part.replace(")", "").replace("(", "").replace(",", "")
     part = part.replace(" ", "_")
     chunk_structure = f"{pdf_name}_q{p.question}_{part}"
     p.chunk_id = f"{chunk_structure}_{i}"
+    p.ms_chunk_id = p.chunk_id.replace("qp", "ms")
     by_question.setdefault(p.question, []).append(p.chunk_id)
 
   for p in parts:
     p.chunk_combination = by_question[p.question]
   return parts
 
-def parse_qp(lines, pdf_path, question_type, coord_type="all"):
+def parse_qp(lines, pdf_path, question_type, coord_type="all", include_subpart=False):
   pdf_path = Path(pdf_path)
   pdf_name = pdf_path.stem
-  parts = parse_question_paper(lines, coord_type)
+  parts = parse_question_paper(lines, coord_type, include_subpart)
   parts = enrich(parts, pdf_name)
   out = [
     {
@@ -384,10 +392,14 @@ def parse_qp(lines, pdf_path, question_type, coord_type="all"):
       "source_pdf": p.source_pdf,
       "chunk_id": p.chunk_id,
       "chunk_combination": p.chunk_combination,
-      "question_type": question_type
+      "question_type": question_type,
+      "ms_source_pdf": p.ms_source_pdf,
+      "subject_code": p.subject_code,
+      "ms_chunk_id": p.ms_chunk_id
     }
     for p in parts
   ]
   with open('datapipline/pastpaperspipline/coords/qp_coords.json', 'w') as f:
       json.dump(out, f, indent=2)
   print("\nSaved to qp_coords.json")
+  return parts

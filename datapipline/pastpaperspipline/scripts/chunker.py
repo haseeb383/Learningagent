@@ -141,23 +141,26 @@ def create_create_chunks_from_coords(pdf_path, coords, doc_type="qp"):
     chunks_created.append((segment_coords, out_path))   # was append(a, b): TypeError
   return chunks_created
 
-def create_text_chunks(lines, coords):
+def _check_line_coord(line, above_line, y_coord):
+  if y_coord >= above_line.y0 and y_coord <= line.y0:
+    return True
+  else:
+    return False
+
+def create_text_chunks(lines, parts):
   chunks = []
   start_index_line = 0
-  for coord in coords:
+  for coord in parts:
     found_coord_start = False
     chunk_text = ''
     for index in range(start_index_line, len(lines)):
+      line_above = lines[index - 1]
       line = lines[index]
-      if line.page == coord.start_page and line.y0 == coord.start_y:
-        start_chunk_line = line
-        print(f"found the start of a coord at {start_chunk_line}")
+      if line.page == coord.start_page and _check_line_coord(line, line_above, coord.start_y):
         found_coord_start = True
       if found_coord_start:
-        chunk_text = chunk_text + line.text
-        if line.page == coord.end_page and line.y0 == coord.end_y:
-          end_chunk_line = line
-          print(f"found the end of a coord at {end_chunk_line}")
+        chunk_text = chunk_text + f"\n{line.text}"
+        if line.page == coord.end_page and _check_line_coord(line, line_above, coord.start_y):
           start_index_line = index
           chunks.append(chunk_text)
           break
@@ -166,14 +169,12 @@ def create_text_chunks(lines, coords):
   return chunks
 
 # pdf_path = "datapipline/pastpaperspipline/downlaods/9702_s26_qp_22.pdf"
-# lines_raw, lines_list = extract_lines(pdf_path=pdf_path)
+# raw_lines = extract_lines(pdf_path=pdf_path)
 # # print(lines_list[0])
-# parts = parse_qp(lines_raw, pdf_path, "structured")
-# lines = get_data_from_lines(lines_raw)
+# parts = parse_qp(raw_lines, pdf_path, "structured", "question")
+# # print(parts)
+# lines = get_data_from_lines(raw_lines)
 # blank = _blank_pages(lines)
 # lines = [l for l in lines if l.page not in blank]
-# # first_line = str(lines[0])
-# # print(first_line)
-
-# print(create_text_chunks(lines, parts))
-# # print(parts[0])
+# text_chunks = create_text_chunks(lines, parts)
+# print(text_chunks[0])
