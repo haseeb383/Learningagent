@@ -1,0 +1,131 @@
+# topics.yaml
+# Closed topic list for the extractor, one entry per syllabus chapter.
+# `papers` = the paper numbers (first digit of the paper code, e.g. 22 -> 2)
+# in which a question on this topic can appear.
+# The model must pick `name` from the list for the paper the question is from.
+# `id` is the stable key to store in the database. Never change an id once used.
+#
+# Built from the Cambridge syllabuses. Check names and paper mapping against the
+# current syllabus PDF for your exam year before running on the full bank.
+
+"9702":
+  name: Physics
+  papers:
+    1: Multiple Choice (AS)
+    2: AS Level Structured Questions
+    3: Advanced Practical Skills
+    4: A Level Structured Questions
+    5: Planning, Analysis and Evaluation
+  topics:
+    # ---- AS Level (assumed knowledge in papers 3, 4, 5) ----
+    - {id: "9702.units",         name: "Physical quantities and units", papers: [1, 2, 3, 4, 5]}
+    - {id: "9702.kinematics",    name: "Kinematics",                    papers: [1, 2, 3, 4, 5]}
+    - {id: "9702.dynamics",      name: "Dynamics",                      papers: [1, 2, 3, 4, 5]}
+    - {id: "9702.forces",        name: "Forces, density and pressure",  papers: [1, 2, 3, 4, 5]}
+    - {id: "9702.energy",        name: "Work, energy and power",        papers: [1, 2, 3, 4, 5]}
+    - {id: "9702.deformation",   name: "Deformation of solids",         papers: [1, 2, 3, 4, 5]}
+    - {id: "9702.waves",         name: "Waves",                         papers: [1, 2, 3, 4, 5]}
+    - {id: "9702.superposition", name: "Superposition",                 papers: [1, 2, 3, 4, 5]}
+    - {id: "9702.electricity",   name: "Electricity",                   papers: [1, 2, 3, 4, 5]}
+    - {id: "9702.dc_circuits",   name: "D.C. circuits",                 papers: [1, 2, 3, 4, 5]}
+    - {id: "9702.particle",      name: "Particle physics",              papers: [1, 2, 4, 5]}
+    # ---- A Level ----
+    - {id: "9702.circular",      name: "Motion in a circle",            papers: [4, 5]}
+    - {id: "9702.gravitational", name: "Gravitational fields",          papers: [4, 5]}
+    - {id: "9702.temperature",   name: "Temperature",                   papers: [4, 5]}
+    - {id: "9702.ideal_gases",   name: "Ideal gases",                   papers: [4, 5]}
+    - {id: "9702.thermodynamics",name: "Thermodynamics",                papers: [4, 5]}
+    - {id: "9702.oscillations",  name: "Oscillations",                  papers: [4, 5]}
+    - {id: "9702.electric",      name: "Electric fields",               papers: [4, 5]}
+    - {id: "9702.capacitance",   name: "Capacitance",                   papers: [4, 5]}
+    - {id: "9702.sensors",       name: "Electronic sensors",            papers: [4, 5]}
+    - {id: "9702.magnetic",      name: "Magnetic fields",               papers: [4, 5]}
+    - {id: "9702.induction",     name: "Electromagnetic induction",     papers: [4, 5]}
+    - {id: "9702.ac",            name: "Alternating currents",          papers: [4, 5]}
+    - {id: "9702.quantum",       name: "Quantum physics",               papers: [4, 5]}
+    - {id: "9702.nuclear",       name: "Nuclear physics",               papers: [4, 5]}
+    - {id: "9702.medical",       name: "Medical physics",               papers: [4, 5]}
+    - {id: "9702.astronomy",     name: "Astronomy and cosmology",       papers: [4, 5]}
+    # ---- Practical papers: use only when no content topic is the main focus ----
+    - {id: "9702.practical",     name: "Experimental skills and investigations", papers: [3]}
+    - {id: "9702.planning",      name: "Planning, analysis and evaluation",      papers: [5]}
+
+"9709":
+  name: Mathematics
+  papers:
+    1: Pure Mathematics 1
+    2: Pure Mathematics 2
+    3: Pure Mathematics 3
+    4: Mechanics
+    5: Probability & Statistics 1
+    6: Probability & Statistics 2
+  topics:
+    # ---- Pure Mathematics 1 (assumed knowledge in papers 2 and 3) ----
+    - {id: "9709.quadratics",      name: "Quadratics",                            papers: [1, 2, 3]}
+    - {id: "9709.functions",       name: "Functions",                             papers: [1, 2, 3]}
+    - {id: "9709.coordinate",      name: "Coordinate geometry",                   papers: [1, 2, 3]}
+    - {id: "9709.circular",        name: "Circular measure",                      papers: [1, 2, 3]}
+    - {id: "9709.series",          name: "Series",                                papers: [1, 2, 3]}
+    # ---- Shared by Pure 1, 2 and 3 (one dashboard chapter each) ----
+    - {id: "9709.trigonometry",    name: "Trigonometry",                          papers: [1, 2, 3]}
+    - {id: "9709.differentiation", name: "Differentiation",                       papers: [1, 2, 3]}
+    - {id: "9709.integration",     name: "Integration",                           papers: [1, 2, 3]}
+    # ---- Pure Mathematics 2 and 3 ----
+    - {id: "9709.algebra",         name: "Algebra",                               papers: [2, 3]}
+    - {id: "9709.log_exp",         name: "Logarithmic and exponential functions", papers: [2, 3]}
+    - {id: "9709.numerical",       name: "Numerical solution of equations",       papers: [2, 3]}
+    # ---- Pure Mathematics 3 only ----
+    - {id: "9709.vectors",         name: "Vectors",                               papers: [3]}
+    - {id: "9709.diff_equations",  name: "Differential equations",                papers: [3]}
+    - {id: "9709.complex",         name: "Complex numbers",                       papers: [3]}
+    # ---- Mechanics ----
+    - {id: "9709.mech_forces",     name: "Forces and equilibrium",                papers: [4]}
+    - {id: "9709.mech_kinematics", name: "Kinematics of motion in a straight line", papers: [4]}
+    - {id: "9709.mech_momentum",   name: "Momentum",                              papers: [4]}
+    - {id: "9709.mech_newton",     name: "Newton's laws of motion",               papers: [4]}
+    - {id: "9709.mech_energy",     name: "Energy, work and power",                papers: [4]}
+    # ---- Probability & Statistics 1 ----
+    - {id: "9709.s1_data",         name: "Representation of data",                papers: [5]}
+    - {id: "9709.s1_perm_comb",    name: "Permutations and combinations",         papers: [5]}
+    - {id: "9709.s1_probability",  name: "Probability",                           papers: [5]}
+    - {id: "9709.s1_discrete_rv",  name: "Discrete random variables",             papers: [5]}
+    - {id: "9709.s1_normal",       name: "The normal distribution",               papers: [5]}
+    # ---- Probability & Statistics 2 ----
+    - {id: "9709.s2_poisson",      name: "The Poisson distribution",              papers: [6]}
+    - {id: "9709.s2_linear_comb",  name: "Linear combinations of random variables", papers: [6]}
+    - {id: "9709.s2_continuous_rv",name: "Continuous random variables",           papers: [6]}
+    - {id: "9709.s2_sampling",     name: "Sampling and estimation",               papers: [6]}
+    - {id: "9709.s2_hypothesis",   name: "Hypothesis tests",                      papers: [6]}
+
+"9618":
+  name: Computer Science
+  papers:
+    1: Theory Fundamentals (AS)
+    2: Fundamental Problem-solving and Programming Skills (AS)
+    3: Advanced Theory (A Level)
+    4: Practical Programming (A Level)
+  topics:
+    # ---- AS theory: Paper 1 ----
+    - {id: "9618.info_rep",        name: "Information representation",             papers: [1]}
+    - {id: "9618.communication",   name: "Communication",                          papers: [1]}
+    - {id: "9618.hardware",        name: "Hardware",                               papers: [1]}
+    - {id: "9618.processor",       name: "Processor fundamentals",                 papers: [1]}
+    - {id: "9618.system_software", name: "System software",                        papers: [1]}
+    - {id: "9618.security",        name: "Security, privacy and data integrity",   papers: [1]}
+    - {id: "9618.ethics",          name: "Ethics and ownership",                   papers: [1]}
+    - {id: "9618.databases",       name: "Databases",                              papers: [1]}
+    # ---- AS problem-solving and programming: Paper 2 (also assumed in Paper 4) ----
+    - {id: "9618.algorithms",      name: "Algorithm design and problem-solving",   papers: [2, 4]}
+    - {id: "9618.data_structures", name: "Data types and structures",              papers: [2, 4]}
+    - {id: "9618.programming",     name: "Programming",                            papers: [2, 4]}
+    - {id: "9618.software_dev",    name: "Software development",                   papers: [2, 4]}
+    # ---- A Level theory: Paper 3 ----
+    - {id: "9618.data_rep",        name: "Data representation",                    papers: [3]}
+    - {id: "9618.internet",        name: "Communication and internet technologies",papers: [3]}
+    - {id: "9618.hardware_vm",     name: "Hardware and virtual machines",          papers: [3]}
+    - {id: "9618.a2_system_sw",    name: "System software (A Level)",              papers: [3]}
+    - {id: "9618.a2_security",     name: "Security (A Level)",                     papers: [3]}
+    - {id: "9618.ai",              name: "Artificial Intelligence",                papers: [3]}
+    # ---- A Level problem-solving and programming: Papers 3 and 4 ----
+    - {id: "9618.comp_thinking",   name: "Computational thinking and problem-solving", papers: [3, 4]}
+    - {id: "9618.further_prog",    name: "Further programming",                    papers: [3, 4]}

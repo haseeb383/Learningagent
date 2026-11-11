@@ -147,20 +147,23 @@ def _check_line_coord(line, above_line, y_coord):
   else:
     return False
 
-def create_text_chunks(lines, parts):
+def create_text_chunks(lines, coords):
+  lines = get_data_from_lines(lines)
+  blank = _blank_pages(lines)
+  lines = [l for l in lines if l.page not in blank]
   chunks = []
   start_index_line = 0
-  for coord in parts:
+  for coord in coords:
     found_coord_start = False
     chunk_text = ''
     for index in range(start_index_line, len(lines)):
       line_above = lines[index - 1]
       line = lines[index]
-      if line.page == coord.start_page and _check_line_coord(line, line_above, coord.start_y):
+      if line.page == coord['start_page'] and _check_line_coord(line, line_above, coord['start_y']):
         found_coord_start = True
       if found_coord_start:
         chunk_text = chunk_text + f"\n{line.text}"
-        if line.page == coord.end_page and _check_line_coord(line, line_above, coord.start_y):
+        if line.page == coord["end_page"] and _check_line_coord(line, line_above, coord["end_y"]):
           start_index_line = index
           chunks.append(chunk_text)
           break
@@ -169,12 +172,8 @@ def create_text_chunks(lines, parts):
   return chunks
 
 # pdf_path = "datapipline/pastpaperspipline/downlaods/9702_s26_qp_22.pdf"
-# raw_lines = extract_lines(pdf_path=pdf_path)
-# # print(lines_list[0])
-# parts = parse_qp(raw_lines, pdf_path, "structured", "question")
-# # print(parts)
-# lines = get_data_from_lines(raw_lines)
-# blank = _blank_pages(lines)
-# lines = [l for l in lines if l.page not in blank]
-# text_chunks = create_text_chunks(lines, parts)
+# lines = extract_lines(pdf_path=pdf_path)
+# with open("datapipline/pastpaperspipline/coords/9702_s26_qp_22.json", "r") as file:
+#   coords = json.load(file)
+# text_chunks = create_text_chunks(lines, coords)
 # print(text_chunks[0])

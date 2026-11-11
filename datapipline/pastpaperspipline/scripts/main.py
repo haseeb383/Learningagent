@@ -3,52 +3,40 @@ from parse_qp import parse_qp
 from parse_ms import parse_ms
 from chunker import create_chunks_from_scratch
 import json
+from pathlib import Path
 
-# maths_structured_qp_path = "datapipline/pastpaperspipline/downlaods/9709_w25_qp_55.pdf"
-# maths_structured_qp_lines = extract_lines("datapipline/pastpaperspipline/downlaods/9709_w25_qp_55.pdf")
-# parse_qp(maths_structured_qp_lines, maths_structured_qp_path, "structured")
-# with open('datapipline/pastpaperspipline/coords/qp_coords.json', 'r') as file:
-#     maths_structured_qp_coords = json.load(file)
-# create_chunks_from_scratch(pdf_path=maths_structured_qp_path, coords=maths_structured_qp_coords)
+def process_pdf(pdf_path, question_type="structured", doc_type="qp", chunk_type='img', chunk_from='scratch', coord_type='all', include_subparts=False):
+	lines = extract_lines(pdf_path=pdf_path)
+	pdf_name = Path(pdf_path).stem
+	if chunk_from == 'scratch':
+		if doc_type == 'qp':
+			parse_qp(lines, pdf_path, question_type, coord_type, include_subparts)
+			with open('datapipline/pastpaperspipline/coords/qp_coords.json', 'r') as file:
+				coords = json.load(file)
+		elif doc_type == 'ms':
+			parse_ms(pdf_path, lines, question_type)
+			with open('datapipline/pastpaperspipline/coords/ms_coords.json', 'r') as file:
+				coords = json.load(file)
+		create_chunks_from_scratch(pdf_path, coords, chunk_type, question_type, doc_type)
+	elif chunk_from == 'coords':
+		coords_file_path = 'datapipline/pastpaperspipline/coords/' + pdf_name + ".json"
+		with open(coords_file_path, 'r') as file:
+			coords = json.load(file)
+		create_chunks_from_scratch(pdf_path, coords, chunk_type, question_type, doc_type)
 
-# maths_structured_ms_path = "datapipline/pastpaperspipline/downlaods/9709_w25_ms_55.pdf"
-# maths_structured_ms_lines = extract_lines("datapipline/pastpaperspipline/downlaods/9709_w25_ms_55.pdf")
-# parse_ms(maths_structured_ms_path, maths_structured_ms_lines, "structured")
-# with open('datapipline/pastpaperspipline/coords/ms_coords.json', 'r') as file:
-#     maths_structured_ms_coords = json.load(file)
-# create_chunks_from_scratch(pdf_path=maths_structured_ms_path, coords=maths_structured_ms_coords, doc_type="ms")
-
+maths_structured_qp_path = "datapipline/pastpaperspipline/downlaods/9709_w25_qp_55.pdf"
+maths_structured_ms_path = "datapipline/pastpaperspipline/downlaods/9709_w25_ms_55.pdf"
 physics_structured_qp_path = "datapipline/pastpaperspipline/downlaods/9702_s26_qp_22.pdf"
-physics_structured_qp_lines = extract_lines(physics_structured_qp_path)
-parse_qp(physics_structured_qp_lines, physics_structured_qp_path, "structured", "all", False)
-with open('datapipline/pastpaperspipline/coords/qp_coords.json', 'r') as file:
-    physics_structured_qp_coords = json.load(file)
-create_chunks_from_scratch(pdf_path=physics_structured_qp_path, coords=physics_structured_qp_coords)
+physics_structured_ms_path = "datapipline/pastpaperspipline/downlaods/9702_s26_ms_22.pdf"
+physics_mcq_qp_path = "datapipline/pastpaperspipline/downlaods/9702_m26_qp_12.pdf"
+physics_mcq_ms_path = "datapipline/pastpaperspipline/downlaods/9702_m26_ms_12.pdf"
+computer_paper_4_qp_path = "datapipline/pastpaperspipline/downlaods/9618_s26_qp_41.pdf"
 
-# physics_structured_ms_path = "datapipline/pastpaperspipline/downlaods/9702_s26_ms_22.pdf"
-# physics_structured_ms_lines = extract_lines("datapipline/pastpaperspipline/downlaods/9702_s26_ms_22.pdf")
-# parse_ms(physics_structured_ms_path, physics_structured_ms_lines)
-# with open('datapipline/pastpaperspipline/coords/ms_coords.json', 'r') as file:
-#     physics_structured_ms_coords = json.load(file)
-# create_chunks_from_scratch(pdf_path=physics_structured_ms_path, coords=physics_structured_ms_coords, doc_type="ms")
+# process_pdf(computer_paper_4_qp_path, "structured", "qp", 'img', 'scratch', 'questions', False)
+# process_pdf(maths_structured_qp_path, "structured", "qp", 'img', 'scratch', 'questions', False)
+# process_pdf(maths_structured_ms_path, "structured", "ms", 'img', 'scratch', 'questions', False)
+# process_pdf(physics_structured_qp_path, "structured", "qp", 'img', 'scratch', 'questions', False)
+# process_pdf(physics_structured_ms_path, "structured", "ms", 'img', 'scratch', 'questions', False)
+# process_pdf(physics_mcq_qp_path, "mcq", "qp", 'img', 'scratch', 'questions', False)
+# process_pdf(physics_mcq_ms_path, "mcq", "ms", 'img', 'scratch', 'questions', False)
 
-# physics_mcq_qp_path = "datapipline/pastpaperspipline/downlaods/9702_m26_qp_12.pdf"
-# physics_mcq_qp_lines = extract_lines("datapipline/pastpaperspipline/downlaods/9702_m26_qp_12.pdf")
-# parse_qp(physics_mcq_qp_lines, physics_mcq_qp_path, "mcq")
-# with open('datapipline/pastpaperspipline/coords/qp_coords.json', 'r') as file:
-#     physics_mcq_qp_coords = json.load(file)
-# create_chunks_from_scratch(pdf_path=physics_mcq_qp_path, coords=physics_mcq_qp_coords)
-
-# physics_mcq_ms_path = "datapipline/pastpaperspipline/downlaods/9702_m26_ms_12.pdf"
-# physics_mcq_ms_lines = extract_lines("datapipline/pastpaperspipline/downlaods/9702_m26_ms_12.pdf")
-# parse_ms(physics_mcq_ms_path, physics_mcq_ms_lines, question_type="mcq")
-# with open('datapipline/pastpaperspipline/coords/ms_coords.json', 'r') as file:
-#     physics_mcq_ms_coords = json.load(file)
-# create_chunks_from_scratch(pdf_path=physics_mcq_ms_path, coords=physics_mcq_ms_coords, question_type='mcq', doc_type="ms")
-
-# computer_paper_4_qp_path = "datapipline/pastpaperspipline/downlaods/9618_s26_qp_41.pdf"
-# computer_paper_4_qp_lines = extract_lines(computer_paper_4_qp_path)
-# parse_qp(computer_paper_4_qp_lines, computer_paper_4_qp_path, "structured", "question")
-# with open('datapipline/pastpaperspipline/coords/qp_coords.json', 'r') as file:
-#     computer_paper_4_qp_coords = json.load(file)
-# create_chunks_from_scratch(pdf_path=computer_paper_4_qp_path, coords=computer_paper_4_qp_coords)
