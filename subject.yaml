@@ -115,10 +115,10 @@
     - {id: "9618.ethics",          name: "Ethics and ownership",                   papers: [1]}
     - {id: "9618.databases",       name: "Databases",                              papers: [1]}
     # ---- AS problem-solving and programming: Paper 2 (also assumed in Paper 4) ----
-    - {id: "9618.algorithms",      name: "Algorithm design and problem-solving",   papers: [2, 4]}
-    - {id: "9618.data_structures", name: "Data types and structures",              papers: [2, 4]}
-    - {id: "9618.programming",     name: "Programming",                            papers: [2, 4]}
-    - {id: "9618.software_dev",    name: "Software development",                   papers: [2, 4]}
+    - {id: "9618.algorithms",      name: "Algorithm design and problem-solving",   papers: [2]}
+    - {id: "9618.data_structures", name: "Data types and structures",              papers: [2]}
+    - {id: "9618.programming",     name: "Programming",                            papers: [2]}
+    - {id: "9618.software_dev",    name: "Software development",                   papers: [2]}
     # ---- A Level theory: Paper 3 ----
     - {id: "9618.data_rep",        name: "Data representation",                    papers: [3]}
     - {id: "9618.internet",        name: "Communication and internet technologies",papers: [3]}
@@ -127,5 +127,10 @@
     - {id: "9618.a2_security",     name: "Security (A Level)",                     papers: [3]}
     - {id: "9618.ai",              name: "Artificial Intelligence",                papers: [3]}
     # ---- A Level problem-solving and programming: Papers 3 and 4 ----
-    - {id: "9618.comp_thinking",   name: "Computational thinking and problem-solving", papers: [3, 4]}
-    - {id: "9618.further_prog",    name: "Further programming",                    papers: [3, 4]}
+    - {id: "9618.data_types",      name: "User-defined data types",                papers: [4]}
+    - {id: "9618.file_org",        name: "File organisation and access",           papers: [4]}
+    - {id: "9618.file_org",        name: "File organisation and access",           papers: [4]}
+    - {id: "9618.recursion",       name: "Recursion",                              papers: [4]}
+    - {id: "9618.prog_prad",       name: "Programming Paradigms",                  papers: [4]}
+    - {id: "9618.file_pro",        name: "File Processing and Exception Handling", papers: [4]}
+    - {id: "9618.Unclassified",    name: "Unclassified",                           papers: [4]}
